@@ -21,56 +21,39 @@ import (
 // As most skip and take values are not actual output values, but always
 // positive differences between such values, the integer type used to store the
 // differences can be of a smaller bitwidth to conserve memory.
-//
-// In this implementation, 32-bit unsigned integers are used as a compromise
-// to store both the skip and take values.
-//
-// However, occasionally a value which overflows a 32-bit integer is needed.
-// Weighing the idea that large skips are more likely than large takes, the
-// following escaping scheme is used.
-//
-// For a take larger than 2^32, the scheme exploits the fact that a skip of size
-// 0 is (and must be) a legitimate value. If the take value of a skiptake
-// element were to overflow, rather than incrementing it, a new skiptake element
-// is appended with a skip of zero. This scheme does however require
-// ceil(n/2^32) or O(n) skiptake elements for a take of (n).
-//
-// For a skip larger than 2^32, an escape is used to encode a full 64-bit skip
-// value. The escape is signaled by setting the take value of the first
-// skiptake element to 0. The 64-bit skip value is then divided into two 32-bit
-// parts, the low 32 bits stored in the first skip-take element, the high 32-
-// bits stored in the skip of the second skip-take element.
-//
-//  Skiptake pair 1 | int 1:	skip: [skip bits 0-31]
-//					| int 2:	take: 0 (flag value)
-//  Skiptake pair 2	| int 3:	skip: [skip bits 32-63]
-//					| int 4:	take: <normal take value>
-//
-// The take value for the second element of the escape is the take value that
-// would have occurred in the skiptake element, had the skip value not
-// overflowed the skip value. This scheme is O(1) for 64-bit skip values.
-//
-// A skip take list should always have an even length, consisting of skip then
-// take values. However, to optimize for the case of a sequence containing only
-// one number, as an exception a list consisting of one take at a skip value
-// that fits within a uin32 may have a length of one consiting of a single skip
-// value, with an implied take of one.
 
+// SkipTakeDecoder is an interface that can produce SkipTake Values,
+// maintaining a current location state.
 type SkipTakeDecoder interface {
+	// Next returns the next pair of skip, take values. Returns (0,0) as a
+	// special case of End-of-Sequence.
 	Next() (skip, take uint64)
+
+	// EOS returns true when the end of the sequence has been reached, false
+	// otherwise.
 	EOS() bool
+
+	// Reset resets the location of the decoder to the beginning of the
+	// sequence.
 	Reset()
 }
 
+// SkipTakeEncoder is an interface that can store a skip take sequence.
 type SkipTakeEncoder interface {
+	// Add adds a new skip, take pair to the sequence.
 	Add(skip, take uint64)
+
+	// Finish completes the sequence and returns the corresponding readable
+	// result.
 	Finish() SkipTakeList
 }
 
+// SkipTakeList is an interface for reading a sequence of skip take pairs.
 type SkipTakeList interface {
 	Decode() SkipTakeDecoder
 }
 
+// SkipTakeWriter is an interface for writing a sequence of skip take pairs.
 type SkipTakeWriter interface {
 	Encode() SkipTakeEncoder
 	Clear()
@@ -94,6 +77,20 @@ func Create(out SkipTakeWriter, values []uint64) SkipTakeList {
 	}
 	b.Flush()
 	return b.Encoder.Finish()
+}
+
+// Encode a skip take list from a list of (skip, take) []uint64 pairs
+func FromRaw(out SkipTakeWriter, v []uint64) {
+	e := out.Encode()
+	for i := 0; i < len(v); i++ {
+		skip := v[i]
+		i++
+		if !(i < len(v)) {
+			break
+		}
+		take := v[i]
+		e.Add(skip, take)
+	}
 }
 
 func Len(l SkipTakeList) uint64 {
@@ -120,8 +117,6 @@ type SkipTakeBuilder struct {
 	skip    uint64
 	take    uint64
 }
-
-// =========================================
 
 func (b *SkipTakeBuilder) Skip(skip uint64) {
 	b.n += skip + 1

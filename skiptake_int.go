@@ -4,6 +4,43 @@ import (
 	"math"
 )
 
+// This is an implementation of a skip-take list using a []uint32 array.
+//
+//
+// In this implementation, 32-bit unsigned integers are used as a compromise
+// to store both the skip and take values.
+//
+// However, occasionally a value which overflows a 32-bit integer is needed.
+// Weighing the idea that large skips are more likely than large takes, the
+// following escaping scheme is used.
+//
+// For a take larger than 2^32, the scheme exploits the fact that a skip of size
+// 0 is (and must be) a legitimate value. If the take value of a skiptake
+// element were to overflow, rather than incrementing it, a new skiptake element
+// is appended with a skip of zero. This scheme does however require
+// ceil(n/2^32) or O(n) skiptake elements for a take of (n).
+//
+// For a skip larger than 2^32, an escape is used to encode a full 64-bit skip
+// value. The escape is signaled by setting the take value of the first
+// skiptake element to 0. The 64-bit skip value is then divided into two 32-bit
+// parts, the low 32 bits stored in the first skip-take element, the high 32-
+// bits stored in the skip of the second skip-take element.
+//
+//  Skiptake pair 1 | int 1:	skip: [skip bits 0-31]
+//					| int 2:	take: 0 (flag value)
+//  Skiptake pair 2	| int 3:	skip: [skip bits 32-63]
+//					| int 4:	take: <normal take value>
+//
+// The take value for the second element of the escape is the take value that
+// would have occurred in the skiptake element, had the skip value not
+// overflowed the skip value. This scheme is O(1) for 64-bit skip values.
+//
+// A skip take list should always have an even length, consisting of skip then
+// take values. However, to optimize for the case of a sequence containing only
+// one number, as an exception a list consisting of one take at a skip value
+// that fits within a uin32 may have a length of one consiting of a single skip
+// value, with an implied take of one.
+
 type SkipTakeIntList []uint32
 
 // SkipTakeIntDecoder holds the state for expanding an escaped 32-bit skip-take

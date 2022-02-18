@@ -1,5 +1,13 @@
 package skiptake
 
+// SkipTakeListVarInt is a implementation of SkipTakeList/SkipTakeWriter that
+// reads and writes from a series of variable-width unsigned integers packed
+// into a byte array. This is similar to the scheme employed by Google's
+// Protocol Buffers.
+//
+// As most values needing to be stored are small, this encoding saves
+// considerable space.
+
 type SkipTakeListVarInt []byte
 
 type SkipTakeVarIntDecoder struct {
@@ -9,16 +17,16 @@ type SkipTakeVarIntDecoder struct {
 
 type SkipTakeVarIntEncoder struct {
 	Elements *SkipTakeListVarInt
-	n        uint64
-	skip     uint64
-	take     uint64
 }
 
+// Assert that we implement the interfaces.
 var _ SkipTakeList = SkipTakeListVarInt{}
 var _ SkipTakeWriter = &SkipTakeListVarInt{}
 var _ SkipTakeDecoder = &SkipTakeVarIntDecoder{}
 var _ SkipTakeEncoder = SkipTakeVarIntEncoder{}
 
+// Read a VarInt from the byte slice. Values are packed as 7-bits per byte,
+// unused high bit used as a flag that more bytes follow.
 func readVarint(s []byte, i *int) uint64 {
 	var ret uint64
 	for n := 0; *i < len(s); n += 7 {
@@ -32,6 +40,7 @@ func readVarint(s []byte, i *int) uint64 {
 	return ret
 }
 
+// Append a VarInt to the byte slice.
 func appendVarint(target []byte, v uint64) []byte {
 	var ar [10]byte
 	i := 0
@@ -98,19 +107,7 @@ func (v *SkipTakeListVarInt) Clear() {
 	}
 }
 
-func (l SkipTakeListVarInt) FromRaw(v []uint64) {
-	e := l.Encode()
-	for i := 0; i < len(v); i++ {
-		skip := v[i]
-		i++
-		if !(i < len(v)) {
-			break
-		}
-		take := v[i]
-		e.Add(skip, take)
-	}
-}
-
+// Implement Stringer interface
 func (l SkipTakeListVarInt) String() string {
 	return ToString(l)
 }
