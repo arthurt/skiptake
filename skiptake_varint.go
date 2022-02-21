@@ -1,65 +1,54 @@
 package skiptake
 
-// SkipTakeListVarInt is a implementation of SkipTakeList/SkipTakeWriter that
-// reads and writes from a series of variable-width unsigned integers packed
-// into a byte array. This is similar to the scheme employed by Google's
-// Protocol Buffers.
+import (
+	"encoding/binary"
+)
+
+// SkipTakeList is a storage implementation of a skip-take list that reads and
+// writes from a series of variable-width unsigned integers packed into a byte
+// array. This is similar to the scheme employed by Google's Protocol Buffers.
 //
 // As most values needing to be stored are small, this encoding saves
 // considerable space.
+//
+// The details of the packing are isolated here, to allow for future schemes to
+// deal with repetative patterns.
 
-type SkipTakeListVarInt []byte
+// The concrete type of the list storage
+type SkipTakeList []byte
 
-type SkipTakeVarIntDecoder struct {
+// A class to abstract reading pairs from the list. See SkipTakeIterator for a
+// general-purpose iterator.
+type SkipTakeDecoder struct {
 	i        int
-	Elements SkipTakeListVarInt
+	Elements SkipTakeList
 }
 
-type SkipTakeVarIntEncoder struct {
-	Elements *SkipTakeListVarInt
+// A class to abstract appending items to the list
+type SkipTakeEncoder struct {
+	Elements *SkipTakeList
 }
 
-// Assert that we implement the interfaces.
-var _ SkipTakeList = SkipTakeListVarInt{}
-var _ SkipTakeWriter = &SkipTakeListVarInt{}
-var _ SkipTakeDecoder = &SkipTakeVarIntDecoder{}
-var _ SkipTakeEncoder = SkipTakeVarIntEncoder{}
-
-// Read a VarInt from the byte slice. Values are packed as 7-bits per byte,
-// unused high bit used as a flag that more bytes follow.
+// Read a varint from the byte slice
 func readVarint(s []byte, i *int) uint64 {
-	var ret uint64
-	for n := 0; *i < len(s); n += 7 {
-		b := s[*i]
-		*i++
-		ret = ret | (uint64(b&0x7f) << n)
-		if b&0x80 == 0 {
-			break
-		}
+	v, n := binary.Uvarint(s[*i:])
+	if n <= 0 {
+		return 0
 	}
-	return ret
+	*i += n
+	return v
 }
 
 // Append a VarInt to the byte slice.
 func appendVarint(target []byte, v uint64) []byte {
 	var ar [10]byte
-	i := 0
-	for {
-		b := byte(v & 0x7f)
-		v = v >> 7
-		if v != 0 {
-			ar[i] = b | 0x80
-			i++
-		} else {
-			ar[i] = b
-			i++
-			break
-		}
-	}
+	i := binary.PutUvarint(ar[:], v)
 	return append(target, ar[:i]...)
 }
 
-func (x *SkipTakeVarIntDecoder) Next() (skip, take uint64) {
+// Next returns the next pair of skip, take values. Returns (0,0) as a special
+// case of End-of-Sequence.
+func (x *SkipTakeDecoder) Next() (skip, take uint64) {
 	skip = readVarint(x.Elements, &x.i)
 	take = readVarint(x.Elements, &x.i)
 
@@ -76,42 +65,31 @@ func (x *SkipTakeVarIntDecoder) Next() (skip, take uint64) {
 	return
 }
 
-func (x *SkipTakeVarIntDecoder) EOS() bool {
-	return x.i+1 > len(x.Elements)
+func (x *SkipTakeDecoder) EOS() bool {
+	return x.i >= len(x.Elements)
 }
 
-func (x *SkipTakeVarIntDecoder) Reset() {
+// Reset resets the location of the decoder to the beginning of the sequence.
+func (x *SkipTakeDecoder) Reset() {
 	x.i = 0
 }
 
-func (s SkipTakeVarIntEncoder) Add(skip, take uint64) {
+// Add adds a new skip-take pair to the sequence.
+func (s SkipTakeEncoder) Add(skip, take uint64) {
 	*s.Elements = appendVarint(*s.Elements, skip)
 	*s.Elements = appendVarint(*s.Elements, take)
 }
 
-func (s SkipTakeVarIntEncoder) Finish() SkipTakeList {
-	return *s.Elements
+func (v SkipTakeList) Decode() SkipTakeDecoder {
+	return SkipTakeDecoder{Elements: v}
 }
 
-func (v SkipTakeListVarInt) Decode() SkipTakeDecoder {
-	return &SkipTakeVarIntDecoder{Elements: v}
+func (v *SkipTakeList) Encode() SkipTakeEncoder {
+	return SkipTakeEncoder{Elements: v}
 }
 
-func (v *SkipTakeListVarInt) Encode() SkipTakeEncoder {
-	return &SkipTakeVarIntEncoder{Elements: v}
-}
-
-func (v *SkipTakeListVarInt) Clear() {
+func (v *SkipTakeList) Clear() {
 	if v != nil {
 		*v = (*v)[:0]
 	}
-}
-
-// Implement Stringer interface
-func (l SkipTakeListVarInt) String() string {
-	return ToString(l)
-}
-
-func (l SkipTakeListVarInt) Expand() []uint64 {
-	return Expand(l)
 }

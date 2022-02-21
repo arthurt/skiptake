@@ -2,7 +2,6 @@ package skiptake
 
 import (
 	"fmt"
-	"math"
 	"strings"
 )
 
@@ -22,66 +21,25 @@ import (
 // positive differences between such values, the integer type used to store the
 // differences can be of a smaller bitwidth to conserve memory.
 
-// SkipTakeDecoder is an interface that can produce SkipTake Values,
-// maintaining a current location state.
-type SkipTakeDecoder interface {
-	// Next returns the next pair of skip, take values. Returns (0,0) as a
-	// special case of End-of-Sequence.
-	Next() (skip, take uint64)
-
-	// EOS returns true when the end of the sequence has been reached, false
-	// otherwise.
-	EOS() bool
-
-	// Reset resets the location of the decoder to the beginning of the
-	// sequence.
-	Reset()
-}
-
-// SkipTakeEncoder is an interface that can store a skip take sequence.
-type SkipTakeEncoder interface {
-	// Add adds a new skip, take pair to the sequence.
-	Add(skip, take uint64)
-
-	// Finish completes the sequence and returns the corresponding readable
-	// result.
-	Finish() SkipTakeList
-}
-
-// SkipTakeList is an interface for reading a sequence of skip take pairs.
-type SkipTakeList interface {
-	Decode() SkipTakeDecoder
-}
-
-// SkipTakeWriter is an interface for writing a sequence of skip take pairs.
-type SkipTakeWriter interface {
-	Encode() SkipTakeEncoder
-	Clear()
-}
-
-func Iterate(l SkipTakeList) SkipTakeIterator {
-	return SkipTakeIterator{Decoder: l.Decode()}
-}
-
-func Build(l SkipTakeWriter) SkipTakeBuilder {
-	l.Clear()
-	return SkipTakeBuilder{Encoder: l.Encode()}
-}
-
-func Create(out SkipTakeWriter, values []uint64) SkipTakeList {
-	b := Build(out)
+// Create() creates a skip-take list from the passed slice of values. These
+// values should be a strictly increasing sequence.
+func Create(values []uint64) SkipTakeList {
+	l := SkipTakeList{}
+	b := Build(&l)
 	for _, v := range values {
 		if !b.Next(v) {
 			return nil
 		}
 	}
 	b.Flush()
-	return b.Encoder.Finish()
+	return l
 }
 
-// Encode a skip take list from a list of (skip, take) []uint64 pairs
-func FromRaw(out SkipTakeWriter, v []uint64) {
-	e := out.Encode()
+// FromRaw() creates a skip-take list from a slice of []uint64 values
+// representing a sequence of alternating skip and take values.
+func FromRaw(v []uint64) SkipTakeList {
+	l := SkipTakeList{}
+	e := l.Encode()
 	for i := 0; i < len(v); i++ {
 		skip := v[i]
 		i++
@@ -91,9 +49,21 @@ func FromRaw(out SkipTakeWriter, v []uint64) {
 		take := v[i]
 		e.Add(skip, take)
 	}
+	return l
 }
 
-func Len(l SkipTakeList) uint64 {
+// GetRaw() returns a []uint64 sequence of alternating skip and take values.
+func (l SkipTakeList) GetRaw() []uint64 {
+	result := []uint64{}
+	for d := l.Decode(); !d.EOS(); {
+		s, t := d.Next()
+		result = append(result, s, t)
+	}
+	return result
+}
+
+// Len() returns how many values are in the expanded original sequence.
+func (l SkipTakeList) Len() uint64 {
 	var ret uint64
 	for d := l.Decode(); !d.EOS(); {
 		_, t := d.Next()
@@ -102,153 +72,72 @@ func Len(l SkipTakeList) uint64 {
 	return ret
 }
 
-// SkipTakeIterator holds the state for iterating and seeking through the original input values
-type SkipTakeIterator struct {
-	Decoder SkipTakeDecoder
-	skipSum uint64
-	take    uint64
-	n       uint64
+// Iterate() returns a SkipTakeIterator for the passed list.
+func (l SkipTakeList) Iterate() SkipTakeIterator {
+	d := l.Decode()
+	return SkipTakeIterator{Decoder: &d}
 }
 
-// Builds a skip take sequence
-type SkipTakeBuilder struct {
-	Encoder SkipTakeEncoder
-	n       uint64
-	skip    uint64
-	take    uint64
-}
-
-func (b *SkipTakeBuilder) Skip(skip uint64) {
-	b.n += skip + 1
-	if skip == 0 {
-		b.take++
-	} else {
-		b.Flush()
-		b.skip = skip
-		b.take = 1
-	}
-}
-
-func (b *SkipTakeBuilder) IncTake() {
-	b.take++
-	b.n++
-}
-
-func (b *SkipTakeBuilder) AddTake(take uint64) {
-	b.take += take
-	b.n++
-}
-
-func (b *SkipTakeBuilder) Next(n uint64) bool {
-	if n < b.n {
-		return false
-	}
-	b.Skip(n - b.n)
-	return true
-}
-
-func (b *SkipTakeBuilder) Flush() {
-	if b.take > 0 {
-		b.Encoder.Add(b.skip, b.take)
-	}
-}
-
-func (t *SkipTakeIterator) Reset() {
-	t.Decoder.Reset()
-	t.skipSum = 0
-	t.n = 0
-}
-
-func (t SkipTakeIterator) EOS() bool {
-	return t.n == math.MaxUint64
-}
-
-//NextSkipTake advances the iterator to the beginning of the next Skip-Take
-//range, returning the skip and take values. A following call to Next() returns
-//the sequence value of the beginning of the interval.
-func (t *SkipTakeIterator) NextSkipTake() (skip, take uint64) {
-	skip, take = t.Decoder.Next()
-	if take == 0 {
-		t.n = math.MaxUint64
-		return
-	}
-	t.skipSum += skip
-	t.n += t.take + skip
-	t.take = take
-	return
-}
-
-//Next returns the next value in the sequence. Returns max uint64 as
-//end-of-sequence. If following a call to NextSkipTake() or Seek(), returns
-//to sequence value of the new take interval.
-func (t *SkipTakeIterator) Next() uint64 {
-	if t.take == 0 {
-		skip, take := t.Decoder.Next()
-		if take == 0 {
-			t.n = math.MaxUint64
-			return math.MaxUint64
-		}
-		t.skipSum += skip
-		t.n += skip
-		t.take = take
-	}
-	result := t.n
-	t.take--
-	t.n++
-	return result
-}
-
-// Seek seeks to the i'th value in the expanded sequence. Returns the i'th
-// seqence value as skip, and how many sequential elements until the next skip
-// as take. A following call to Next() returns the same i'th sequence value.
-func (t *SkipTakeIterator) Seek(pos uint64) (uint64, uint64) {
-	takeSum := t.n + t.take - t.skipSum
-	if pos < takeSum {
-		t.Reset()
-		takeSum = 0
-	}
-	for takeSum <= pos {
-		_, take := t.NextSkipTake()
-		if take == 0 {
-			return 0, 0
-		}
-		takeSum += take
-	}
-	t.take = takeSum - pos
-	t.n = t.skipSum + pos
-	return t.n, t.take
-}
-
-// Expand expands the sequence as a slice of uint64 values
-func Expand(s SkipTakeList) []uint64 {
+// Expand() expands the sequence as a slice of uint64 values of length Len().
+func (l SkipTakeList) Expand() []uint64 {
 	var output []uint64
-	iter := Iterate(s)
+
+	iter := l.Iterate()
 	for n := iter.Next(); !iter.EOS(); n = iter.Next() {
 		output = append(output, n)
 	}
 	return output
 }
 
-func ToString(s SkipTakeList) string {
+// Implement Stringer interface
+func (l SkipTakeList) String() string {
+	return l.Format(120)
+}
+
+// Print the skip-take list as ranges. If maxlength < 0 will print all ranges.
+// Otherwise,maxlength sets the upper bound for the returned string length, and
+// the ranges will be truncated, with '...' appended.
+func (l SkipTakeList) Format(maxLen int) string {
 	n := uint64(0)
 	b := strings.Builder{}
-	dec := s.Decode()
-
+	dec := l.Decode()
+	first := true
 	for {
 		skip, take := dec.Next()
 		if take == 0 {
 			break
 		}
-		if n > 0 {
-			b.WriteString(", ")
-		}
 		n += skip
+		var s string
 		if take == 1 {
-			fmt.Fprintf(&b, "%d", n)
+			s = fmt.Sprintf("%d", n)
 		} else {
-			fmt.Fprintf(&b, "[%d - %d]", n, n+take-1)
+			s = fmt.Sprintf("[%d - %d]", n, n+take-1)
 		}
 		n += take
+		needed_cap := len(s)
+		if !first {
+			needed_cap += 2
+		}
+		if !dec.EOS() {
+			needed_cap += 3
+		}
+
+		if maxLen < 0 || maxLen >= needed_cap {
+			if !first {
+				b.WriteString(", ")
+			}
+			b.WriteString(s)
+			if maxLen >= 0 {
+				maxLen -= len(s) + 2
+			}
+		} else {
+			if maxLen >= 3 {
+				b.WriteString("...")
+			}
+			break
+		}
+		first = false
 	}
 	return b.String()
 }

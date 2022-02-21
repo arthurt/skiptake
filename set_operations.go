@@ -4,13 +4,15 @@ import (
 	"math"
 )
 
-func Union(result SkipTakeWriter, lset ...SkipTakeList) {
+func Union(lset ...SkipTakeList) SkipTakeList {
+	result := SkipTakeList{}
 	iter := make([]SkipTakeIterator, len(lset))
 	for i, l := range lset {
-		iter[i] = Iterate(l)
+		iter[i] = l.Iterate()
 		iter[i].NextSkipTake()
 	}
-	union(Build(result), iter)
+	union(Build(&result), iter)
+	return result
 }
 
 func union(result SkipTakeBuilder, iter []SkipTakeIterator) {
@@ -60,13 +62,15 @@ func union(result SkipTakeBuilder, iter []SkipTakeIterator) {
 	result.Flush()
 }
 
-func Intersection(result SkipTakeWriter, lset ...SkipTakeList) {
+func Intersection(lset ...SkipTakeList) SkipTakeList {
+	result := SkipTakeList{}
 	iter := make([]SkipTakeIterator, len(lset))
 	for i, l := range lset {
-		iter[i] = Iterate(l)
+		iter[i] = l.Iterate()
 		iter[i].NextSkipTake()
 	}
-	intersection(Build(result), iter)
+	intersection(Build(&result), iter)
+	return result
 }
 
 func intersection(result SkipTakeBuilder, iter []SkipTakeIterator) {
@@ -105,8 +109,10 @@ outer:
 	result.Flush()
 }
 
-func Complement(result SkipTakeWriter, set SkipTakeList, max uint64) {
-	complement(Build(result), set.Decode(), max)
+func Complement(set SkipTakeList, max uint64) SkipTakeList {
+	result := SkipTakeList{}
+	complement(Build(&result), set.Decode(), max)
+	return result
 }
 
 func complement(result SkipTakeBuilder, set SkipTakeDecoder, max uint64) {
