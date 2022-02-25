@@ -54,7 +54,7 @@ func Test_SkipTake_Complement(t *testing.T) {
 	// Test input within range
 	list := Create([]uint64{2, 3, 8, 9, 10, 11, 17})
 	t.Logf("Input Set: %v", list)
-	complement := Complement(list, max)
+	complement := ComplementMax(list, max)
 	t.Logf("Complement Set (range %d): %v", max, complement)
 
 	expected := []uint64{0, 1, 4, 5, 6, 7, 12, 13, 14, 15, 16, 18, 19}
@@ -66,7 +66,7 @@ func Test_SkipTake_Complement(t *testing.T) {
 	// Test input overlaps start
 	list = Create([]uint64{0, 1, 2, 4, 5})
 	t.Logf("Input Set: %v", list)
-	complement = Complement(list, max)
+	complement = ComplementMax(list, max)
 	t.Logf("Complement Set (range %d): %v", max, complement)
 
 	expected = []uint64{3, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19}
@@ -78,7 +78,7 @@ func Test_SkipTake_Complement(t *testing.T) {
 	// Test input overlaps end
 	list = Create([]uint64{4, 5, 11, 12, 13, 14, 15, 16, 17, 18, 19})
 	t.Logf("Input Set: %v", list)
-	complement = Complement(list, max)
+	complement = ComplementMax(list, max)
 	t.Logf("Complement Set (range %d): %v", max, complement)
 
 	expected = []uint64{0, 1, 2, 3, 6, 7, 8, 9, 10}
