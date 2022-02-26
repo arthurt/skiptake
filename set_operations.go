@@ -124,22 +124,24 @@ func Complement(list SkipTakeList) SkipTakeList {
 // passed List set, bounded to the range [0, max].
 func ComplementMax(list SkipTakeList, max uint64) SkipTakeList {
 	result := SkipTakeList{}
-	complement(Build(&result), list.Decode(), max)
+	b := Build(&result)
+	complement(&b, list.Decode(), max)
+	b.Flush()
 	return result
 }
 
-func complement(result SkipTakeBuilder, set SkipTakeDecoder, max uint64) {
+func complement(result *SkipTakeBuilder, set SkipTakeDecoder, max uint64) {
 	var n uint64
 	for {
 		skip, take := set.Next()
 		if skip > 0 {
-			if n+skip > max {
+			if n+skip >= max {
 				// End boundary case. Next source skip starts outside our max
 				// boundary. Add a take for the rest of the output range and be
 				// done.
-				result.AddTake(max - n)
+				result.AddTake(max - n + 1)
 				n += skip
-				break
+				return
 			} else {
 				if n == 0 {
 					// Beginning boundary case. Need to add a zero-skip and
@@ -156,11 +158,11 @@ func complement(result SkipTakeBuilder, set SkipTakeDecoder, max uint64) {
 			// Input source is done.
 			break
 		}
-		if n+take > max {
+		if n+take >= max {
 			// End boundary case. Next source take finished outside our max
 			// boundary.
 			n += take
-			break
+			return
 		} else {
 			// Non-boundary case. Add source take as a skip.
 			result.Skip(take)
@@ -173,10 +175,8 @@ func complement(result SkipTakeBuilder, set SkipTakeDecoder, max uint64) {
 	// max boundary.
 	if n <= max {
 		if n == 0 {
-			result.AddTake(max)
-		} else {
-			result.AddTake(max - n - 1)
+			result.Skip(0)
 		}
+		result.AddTake(max - n)
 	}
-	result.Flush()
 }
