@@ -43,7 +43,7 @@ func (b *SkipTakeBuilder) IncTake() {
 // AddTake increases the current take by the passed take amount.
 func (b *SkipTakeBuilder) AddTake(take uint64) {
 	b.take += take
-	b.n++
+	b.n += take
 }
 
 // Next() feeds the next value of the strictly increasing sequence to encode to
