@@ -118,7 +118,7 @@ func Complement(list SkipTakeList) SkipTakeList {
 	return ComplementMax(list, math.MaxUint64)
 }
 
-// Complement returns a new List that is the set algebra complement of the
+// ComplementMax returns a new List that is the set algebra complement of the
 // passed List set, bounded to the range [0, max].
 func ComplementMax(list SkipTakeList, max uint64) SkipTakeList {
 	b := Build(&SkipTakeList{})
@@ -138,16 +138,15 @@ func complement(result *Builder, set SkipTakeDecoder, max uint64) {
 				result.Take(max - n + 1)
 				n += skip
 				return
-			} else {
-				if n == 0 {
-					// Beginning boundary case. Need to add a zero-skip and
-					// take if the source starts with a skip.
-					result.Skip(0)
-				}
-				// Non-boundary case. Take the skip, minus the implied source
-				// take.
-				result.Take(skip - 1)
 			}
+			if n == 0 {
+				// Beginning boundary case. Need to add a zero-skip and take if
+				// the source starts with a skip.
+				result.Skip(0)
+			}
+			// Non-boundary case. Take the skip, minus the implied source take.
+			result.Take(skip - 1)
+
 		}
 		n += skip
 		if take == 0 {
@@ -159,10 +158,10 @@ func complement(result *Builder, set SkipTakeDecoder, max uint64) {
 			// boundary.
 			n += take
 			return
-		} else {
-			// Non-boundary case. Add source take as a skip.
-			result.Skip(take)
 		}
+		// Non-boundary case. Add source take as a skip.
+		result.Skip(take)
+
 		n += take
 	}
 
