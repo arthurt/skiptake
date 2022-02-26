@@ -48,42 +48,58 @@ func Test_SkipTake_Intersection(t *testing.T) {
 	}
 }
 
-func Test_SkipTake_Complement(t *testing.T) {
-	const max uint64 = 20
+func testComplement(t *testing.T, subject, expected SkipTakeList, max uint64) {
+
+	t.Logf("Input List: %v", subject)
+	complement := ComplementMax(subject, max)
+	t.Logf("Complement Set (max %d): %v", max, complement)
+
+	if !equalSkipTakeList(complement, expected) {
+		t.Fatalf("%v != %v", complement, expected)
+		return
+	}
+
+	// Complement is a idempotent operation. Test that.
+	reverse := ComplementMax(complement, max)
+	t.Logf("Complement of Complement (max %d): %v", max, reverse)
+	if !equalSkipTakeList(reverse, subject) {
+		t.Fatalf("Complement is not idempotent: %v != %v", reverse, subject)
+		return
+	}
+}
+
+func Test_SkipTake_ComplementMax(t *testing.T) {
+	const max uint64 = 19
 
 	// Test input within range
-	list := Create([]uint64{2, 3, 8, 9, 10, 11, 17})
-	t.Logf("Input Set: %v", list)
-	complement := ComplementMax(list, max)
-	t.Logf("Complement Set (range %d): %v", max, complement)
-
-	expected := []uint64{0, 1, 4, 5, 6, 7, 12, 13, 14, 15, 16, 18, 19}
-	result := complement.Expand()
-	if !equalUint64(expected, result) {
-		t.Fatalf("%v != %v", result, expected)
-	}
+	testComplement(
+		t,
+		makeRange([]intrv{intrv{2, 3}, intrv{8, 11}, intrv{17, 17}}),
+		makeRange([]intrv{intrv{0, 1}, intrv{4, 7}, intrv{12, 16}, intrv{18, 19}}),
+		max,
+	)
 
 	// Test input overlaps start
-	list = Create([]uint64{0, 1, 2, 4, 5})
-	t.Logf("Input Set: %v", list)
-	complement = ComplementMax(list, max)
-	t.Logf("Complement Set (range %d): %v", max, complement)
-
-	expected = []uint64{3, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19}
-	result = complement.Expand()
-	if !equalUint64(expected, result) {
-		t.Fatalf("%v != %v", result, expected)
-	}
+	testComplement(
+		t,
+		makeRange([]intrv{intrv{0, 1}, intrv{4, 5}}),
+		makeRange([]intrv{intrv{2, 3}, intrv{6, 19}}),
+		max,
+	)
 
 	// Test input overlaps end
-	list = Create([]uint64{4, 5, 11, 12, 13, 14, 15, 16, 17, 18, 19})
-	t.Logf("Input Set: %v", list)
-	complement = ComplementMax(list, max)
-	t.Logf("Complement Set (range %d): %v", max, complement)
+	testComplement(
+		t,
+		makeRange([]intrv{intrv{4, 5}, intrv{11, 19}}),
+		makeRange([]intrv{intrv{0, 3}, intrv{6, 10}}),
+		max,
+	)
 
-	expected = []uint64{0, 1, 2, 3, 6, 7, 8, 9, 10}
-	result = complement.Expand()
-	if !equalUint64(expected, result) {
-		t.Fatalf("%v != %v", result, expected)
-	}
+	// Test empty input
+	testComplement(
+		t,
+		SkipTakeList{},
+		makeRange([]intrv{intrv{0, 19}}),
+		max,
+	)
 }
