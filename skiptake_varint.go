@@ -7,14 +7,17 @@ import (
 // The details of the byte packing are isolated here, to allow for future
 // schemes to deal with repetative patterns.
 
-// A class to abstract reading pairs from the list. See skiptake.Iterator for a
-// general-purpose iterator.
+// Decoder abstracts reading pairs from the list.
+//
+// See skiptake.Iterator for a general-purpose iterator.
 type Decoder struct {
 	i        int
 	Elements List
 }
 
-// A class to abstract appending items to the list
+// Encoder abstracts appending items to the list.
+//
+// See skiptake.Builder for a general-purpose list builder.
 type Encoder struct {
 	Elements *List
 }
@@ -55,6 +58,7 @@ func (x *Decoder) Next() (skip, take uint64) {
 	return
 }
 
+// EOS returns if the decoder is a that end of the sequence.
 func (x *Decoder) EOS() bool {
 	return x.i >= len(x.Elements)
 }
@@ -70,14 +74,17 @@ func (s Encoder) Add(skip, take uint64) {
 	*s.Elements = appendVarint(*s.Elements, take)
 }
 
+// Decode returns a new skiptake.Decoder for the list.
 func (v List) Decode() Decoder {
 	return Decoder{Elements: v}
 }
 
+// Encode returns a new skiptake.Encoder for the list
 func (v *List) Encode() Encoder {
 	return Encoder{Elements: v}
 }
 
+// Clear resets the list as a new empty list.
 func (v *List) Clear() {
 	if v != nil {
 		*v = (*v)[:0]
