@@ -48,6 +48,17 @@ func makeRange(args []intrv) SkipTakeList {
 	return ret
 }
 
+// Test the testers
+func Test_makeRange(t *testing.T) {
+	subject := makeRange([]intrv{intrv{0, 2}, intrv{4, 5}})
+	expected := []uint64{0, 1, 2, 4, 5}
+	result := subject.Expand()
+
+	if !equalUint64(expected, result) {
+		t.Fatalf("Test function makeRange() Does not work: %v != %v", subject, Create(expected))
+	}
+}
+
 func Test_SkipTake_Expand(t *testing.T) {
 
 	subject := FromRaw([]uint64{5, 3, 10, 1, 1, 2})
