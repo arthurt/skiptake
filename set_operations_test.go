@@ -54,7 +54,7 @@ func testComplement(t *testing.T, subject, expected List, max uint64) {
 	complement := ComplementMax(subject, max)
 	t.Logf("Complement Set (max %d): %v", max, complement)
 
-	if !equalList(complement, expected) {
+	if !Equal(complement, expected) {
 		t.Fatalf("%v != %v", complement, expected)
 		return
 	}
@@ -62,7 +62,7 @@ func testComplement(t *testing.T, subject, expected List, max uint64) {
 	// Complement is a idempotent operation. Test that.
 	reverse := ComplementMax(complement, max)
 	t.Logf("Complement of Complement (max %d): %v", max, reverse)
-	if !equalList(reverse, subject) {
+	if !Equal(reverse, subject) {
 		t.Fatalf("Complement is not idempotent: %v != %v", reverse, subject)
 		return
 	}

@@ -17,24 +17,6 @@ func equalUint64(a, b []uint64) bool {
 	return true
 }
 
-func equalList(a, b List) bool {
-	ad := a.Decode()
-	bd := b.Decode()
-
-	for !ad.EOS() {
-		as, at := ad.Next()
-		bs, bt := bd.Next()
-		if as != bs || at != bt {
-			return false
-		}
-	}
-
-	if !bd.EOS() {
-		return false
-	}
-	return true
-}
-
 type intrv [2]uint
 
 func makeRange(args []intrv) List {
@@ -76,7 +58,7 @@ func Test_SkipTake_Compress(t *testing.T) {
 	expected := FromRaw([]uint64{2, 4, 3, 1, 1, 1, 1, 1, 1, 2})
 	result := Create(subject)
 	t.Logf("%v -> %v", subject, result)
-	if !equalList(expected, result) {
+	if !Equal(expected, result) {
 		t.Fatalf("Encode %v != %v", result, expected)
 	}
 }

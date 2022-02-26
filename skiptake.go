@@ -44,6 +44,26 @@ func Create(values []uint64) List {
 	return b.Finish()
 }
 
+// Equal returns true if two lists are the same. That is, they contain the same
+// subsequence.
+func Equal(a, b List) bool {
+	ad := a.Decode()
+	bd := b.Decode()
+
+	for !ad.EOS() {
+		as, at := ad.Next()
+		bs, bt := bd.Next()
+		if as != bs || at != bt {
+			return false
+		}
+	}
+
+	if !bd.EOS() {
+		return false
+	}
+	return true
+}
+
 // FromRaw() creates a skip-take list from a slice of []uint64 values
 // representing a sequence of alternating skip and take values.
 func FromRaw(v []uint64) List {
