@@ -38,14 +38,12 @@ func equalSkipTakeList(a, b SkipTakeList) bool {
 type intrv [2]uint
 
 func makeRange(args []intrv) SkipTakeList {
-	ret := SkipTakeList{}
-	b := Build(&ret)
+	b := Build(&SkipTakeList{})
 	for _, p := range args {
 		b.Next(uint64(p[0]))
-		b.AddTake(uint64(p[1] - p[0]))
+		b.Take(uint64(p[1] - p[0]))
 	}
-	b.Flush()
-	return ret
+	return b.Finish()
 }
 
 // Test the testers

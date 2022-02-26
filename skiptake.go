@@ -24,15 +24,13 @@ import (
 // Create() creates a skip-take list from the passed slice of values. These
 // values should be a strictly increasing sequence.
 func Create(values []uint64) SkipTakeList {
-	l := SkipTakeList{}
-	b := Build(&l)
+	b := Build(&SkipTakeList{})
 	for _, v := range values {
 		if !b.Next(v) {
 			return nil
 		}
 	}
-	b.Flush()
-	return l
+	return b.Finish()
 }
 
 // FromRaw() creates a skip-take list from a slice of []uint64 values

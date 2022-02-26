@@ -1,20 +1,25 @@
 package skiptake
 
-// SkipTakeBuilder constructs a skip-take list from callers either appending
-// absolute values in a strictly increasing sequence, or appending raw skip and
-// take values.
-type SkipTakeBuilder struct {
+// Builder incrementally constructs a skip-take list from a sequence of
+// increasing integers or raw skip and take values.
+//
+// The resulting list is built by maintaining a current take count which is
+// flushed whenever a non-zero skip occurs.
+type Builder struct {
 	Encoder SkipTakeEncoder
 	n       uint64
 	skip    uint64
 	take    uint64
 }
 
-// Build() returns a skip take builder that stores the list it creates in the
-// passed argument.
-func Build(l *SkipTakeList) SkipTakeBuilder {
+// Build returns a skip take builder that stores the list it creates in the
+// passed argument. The passed list will also be returned by Finish().
+//
+// Note that Build returns a Builder, not a pointer to a Builder. In order for
+// changes to propage, this builder should be passed by reference.
+func Build(l *SkipTakeList) Builder {
 	l.Clear()
-	return SkipTakeBuilder{Encoder: l.Encode()}
+	return Builder{Encoder: l.Encode()}
 }
 
 // Skip adds a skip value to the list being built. Every call to skip implies a
@@ -23,32 +28,29 @@ func Build(l *SkipTakeList) SkipTakeBuilder {
 //
 // A skip of 0 has the same effect as incrementing the current take count. A
 // non-zero skip always flushes the current take count.
-func (b *SkipTakeBuilder) Skip(skip uint64) {
+func (b *Builder) Skip(skip uint64) {
 	b.n += skip + 1
 	if skip == 0 {
 		b.take++
 	} else {
-		b.Flush()
+		b.flush()
 		b.skip = skip
 		b.take = 1
 	}
 }
 
-// IncTake Increases the current take count by one.
-func (b *SkipTakeBuilder) IncTake() {
-	b.take++
-	b.n++
-}
-
-// AddTake increases the current take by the passed take amount.
-func (b *SkipTakeBuilder) AddTake(take uint64) {
+// Take increases the current take count by the passed amount.
+func (b *Builder) Take(take uint64) {
 	b.take += take
 	b.n += take
 }
 
-// Next() feeds the next value of the strictly increasing sequence to encode to
-// the builder.
-func (b *SkipTakeBuilder) Next(n uint64) bool {
+// Next feeds the value 'n' of the strictly increasing sequence to encode to
+// the builder. Next automatically detects skip and non-skips in the sequence, encoding
+// appropriately. Returns true if 'n' is greater than all previous values add,
+// meaning that the sequence is strictly increasing. Otherwise the value 'n' is
+// ignored and false is returned.
+func (b *Builder) Next(n uint64) bool {
 	if n < b.n {
 		return false
 	}
@@ -56,10 +58,16 @@ func (b *SkipTakeBuilder) Next(n uint64) bool {
 	return true
 }
 
-// Flush() instructs the builder that it has completed, flushing out the final
+// flush instructs the builder that it has completed, flushing out the final
 // take count.
-func (b *SkipTakeBuilder) Flush() {
+func (b *Builder) flush() {
 	if b.take > 0 {
 		b.Encoder.Add(b.skip, b.take)
 	}
+}
+
+// Finish flushes any pending data to the built list and returns it.
+func (b *Builder) Finish() SkipTakeList {
+	b.flush()
+	return *b.Encoder.Elements
 }
