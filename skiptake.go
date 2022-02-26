@@ -1,7 +1,8 @@
 //License: foo
 
 /*
-Skip Take - A low-complexity sequence bitmap.
+Package skiptake is an implementation of a low-complexity integer sequence
+compression.
 
 A Skip-Take List is a datatype for storing a sequence of strictly increasing
 integers, most efficient for sequences which have many contiguous sub-sequences
@@ -11,13 +12,26 @@ The basic idea is an interleaved list of skip and take instructions on how to
 build the sequence from preforming 'skip' and 'take' on the sequence of all
 integers.
 
-Eg: Skip 1, take 4, skip 2, take 3 would create the sequence: (1, 2, 3, 4,
-7, 8, 9), and is effectively (Skip [0]), (Take [1-4]), (Skip [5-6]), (Take
-[8-9])
+Eg:
+
+	Skip 1, take 4, skip 2, take 3
+
+would create the sequence:
+
+	(1, 2, 3, 4, 7, 8, 9),
+
+and is effectively
+
+	Skip: 0         5 6
+	Take:   1 2 3 4     7 8 9
 
 As most skip and take values are not actual output values, but always
 positive differences between such values, the integer type used to store the
 differences can be of a smaller bitwidth to conserve memory.
+
+In this package, the operation 'skip' always implies a take of at lest 1
+following the skip, but the operation take does not imply a non-zero take before
+it.
 */
 package skiptake
 
@@ -28,12 +42,12 @@ import (
 
 // List is the type that holds a Skip-Take list.
 //
-// A Skip-Take list is encoded as a series of variable with integers, with
+// A Skip-Take list is encoded as a series of variable width integers, with
 // additional run length encoding.
 type List []byte
 
-// Create() creates a skip-take list from the passed slice of values. These
-// values should be a strictly increasing sequence.
+// Create creates a skip-take list from the passed slice of values. These
+// values should be a strictly increasing sequence. Returns nil if not.
 func Create(values []uint64) List {
 	b := Build(&List{})
 	for _, v := range values {
@@ -64,7 +78,7 @@ func Equal(a, b List) bool {
 	return true
 }
 
-// FromRaw() creates a skip-take list from a slice of []uint64 values
+// FromRaw creates a skip-take list from a slice of []uint64 values
 // representing a sequence of alternating skip and take values.
 func FromRaw(v []uint64) List {
 	l := List{}
@@ -81,7 +95,7 @@ func FromRaw(v []uint64) List {
 	return l
 }
 
-// GetRaw() returns a []uint64 sequence of alternating skip and take values.
+// GetRaw returns a []uint64 sequence of alternating skip and take values.
 func (l List) GetRaw() []uint64 {
 	result := []uint64{}
 	for d := l.Decode(); !d.EOS(); {
@@ -91,7 +105,7 @@ func (l List) GetRaw() []uint64 {
 	return result
 }
 
-// Len() returns how many values are in the expanded original sequence.
+// Len returns how many values are in the expanded sequence.
 func (l List) Len() uint64 {
 	var ret uint64
 	for d := l.Decode(); !d.EOS(); {
@@ -101,15 +115,20 @@ func (l List) Len() uint64 {
 	return ret
 }
 
-// Iterate() returns a skiptake.Iterator for the passed list.
+// Iterate returns a new skiptake.Iterator for the passed list.
 func (l List) Iterate() Iterator {
 	d := l.Decode()
 	return Iterator{Decoder: &d}
 }
 
-// Expand() expands the sequence as a slice of uint64 values of length Len().
+// Expand expands the sequence as a slice of uint64 values of length Len().
+//
+// Note: Caution is to be exercised. A naive use of Expand() on a result of
+// skiptake.Complement() can create an array of a multiple of 2^64, which is
+// ~147 EB (147,000,000 GB) in size.
 func (l List) Expand() []uint64 {
-	var output []uint64
+	// Fail-fast
+	output := make([]uint64, 0, l.Len())
 
 	iter := l.Iterate()
 	for n := iter.Next(); !iter.EOS(); n = iter.Next() {
@@ -118,14 +137,18 @@ func (l List) Expand() []uint64 {
 	return output
 }
 
-// Implement Stringer interface
+// Implement the fmt.Stringer interface. Returns
+//		l.Format(120).
 func (l List) String() string {
 	return l.Format(120)
 }
 
-// Print the skip-take list as ranges. If maxlength < 0 will print all ranges.
-// Otherwise,maxlength sets the upper bound for the returned string length, and
-// the ranges will be truncated, with '...' appended.
+// Format returns a human-friendly representation of the list of values as
+// a sequence of ranges, or individual members for ranges of length 1.
+//
+// If the argument maxLen > 0, it specifies the maximum length of the string to
+// return. List which exceed this limit will be truncated with `...`. Otherwise
+// all ranges will be included.
 func (l List) Format(maxLen int) string {
 	n := uint64(0)
 	b := strings.Builder{}
@@ -144,15 +167,15 @@ func (l List) Format(maxLen int) string {
 			s = fmt.Sprintf("[%d - %d]", n, n+take-1)
 		}
 		n += take
-		needed_cap := len(s)
+		neededCap := len(s)
 		if !first {
-			needed_cap += 2
+			neededCap += 2
 		}
 		if !dec.EOS() {
-			needed_cap += 3
+			neededCap += 3
 		}
 
-		if maxLen < 0 || maxLen >= needed_cap {
+		if maxLen < 0 || maxLen >= neededCap {
 			if !first {
 				b.WriteString(", ")
 			}
