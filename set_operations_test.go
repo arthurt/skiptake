@@ -48,13 +48,13 @@ func Test_SkipTake_Intersection(t *testing.T) {
 	}
 }
 
-func testComplement(t *testing.T, subject, expected SkipTakeList, max uint64) {
+func testComplement(t *testing.T, subject, expected List, max uint64) {
 
 	t.Logf("Input List: %v", subject)
 	complement := ComplementMax(subject, max)
 	t.Logf("Complement Set (max %d): %v", max, complement)
 
-	if !equalSkipTakeList(complement, expected) {
+	if !equalList(complement, expected) {
 		t.Fatalf("%v != %v", complement, expected)
 		return
 	}
@@ -62,7 +62,7 @@ func testComplement(t *testing.T, subject, expected SkipTakeList, max uint64) {
 	// Complement is a idempotent operation. Test that.
 	reverse := ComplementMax(complement, max)
 	t.Logf("Complement of Complement (max %d): %v", max, reverse)
-	if !equalSkipTakeList(reverse, subject) {
+	if !equalList(reverse, subject) {
 		t.Fatalf("Complement is not idempotent: %v != %v", reverse, subject)
 		return
 	}
@@ -98,7 +98,7 @@ func Test_SkipTake_ComplementMax(t *testing.T) {
 	// Test empty input
 	testComplement(
 		t,
-		SkipTakeList{},
+		List{},
 		makeRange([]intrv{intrv{0, 19}}),
 		max,
 	)

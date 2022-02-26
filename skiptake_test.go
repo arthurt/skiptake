@@ -17,7 +17,7 @@ func equalUint64(a, b []uint64) bool {
 	return true
 }
 
-func equalSkipTakeList(a, b SkipTakeList) bool {
+func equalList(a, b List) bool {
 	ad := a.Decode()
 	bd := b.Decode()
 
@@ -37,8 +37,8 @@ func equalSkipTakeList(a, b SkipTakeList) bool {
 
 type intrv [2]uint
 
-func makeRange(args []intrv) SkipTakeList {
-	b := Build(&SkipTakeList{})
+func makeRange(args []intrv) List {
+	b := Build(&List{})
 	for _, p := range args {
 		b.Next(uint64(p[0]))
 		b.Take(uint64(p[1] - p[0]))
@@ -76,7 +76,7 @@ func Test_SkipTake_Compress(t *testing.T) {
 	expected := FromRaw([]uint64{2, 4, 3, 1, 1, 1, 1, 1, 1, 2})
 	result := Create(subject)
 	t.Logf("%v -> %v", subject, result)
-	if !equalSkipTakeList(expected, result) {
+	if !equalList(expected, result) {
 		t.Fatalf("Encode %v != %v", result, expected)
 	}
 }

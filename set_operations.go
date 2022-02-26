@@ -8,9 +8,9 @@ import (
 
 // Union returns a new List that is the computed set algebra union of the passed
 // slice of lists.
-func Union(lists ...SkipTakeList) SkipTakeList {
-	b := Build(&SkipTakeList{})
-	iter := make([]SkipTakeIterator, len(lists))
+func Union(lists ...List) List {
+	b := Build(&List{})
+	iter := make([]Iterator, len(lists))
 	for i := range lists {
 		iter[i] = lists[i].Iterate()
 		iter[i].NextSkipTake()
@@ -19,7 +19,7 @@ func Union(lists ...SkipTakeList) SkipTakeList {
 	return b.Finish()
 }
 
-func union(result *Builder, iter []SkipTakeIterator) {
+func union(result *Builder, iter []Iterator) {
 	var n, r, l uint64
 	for {
 		// Find the lowest start of a new range
@@ -67,9 +67,9 @@ func union(result *Builder, iter []SkipTakeIterator) {
 
 // Intersection returns a new List that is the computed set algebra intersection
 // of the passed slice of lists.
-func Intersection(lists ...SkipTakeList) SkipTakeList {
-	b := Build(&SkipTakeList{})
-	iter := make([]SkipTakeIterator, len(lists))
+func Intersection(lists ...List) List {
+	b := Build(&List{})
+	iter := make([]Iterator, len(lists))
 	for i := range lists {
 		iter[i] = lists[i].Iterate()
 		iter[i].NextSkipTake()
@@ -78,7 +78,7 @@ func Intersection(lists ...SkipTakeList) SkipTakeList {
 	return b.Finish()
 }
 
-func intersection(result *Builder, iter []SkipTakeIterator) {
+func intersection(result *Builder, iter []Iterator) {
 	var n, r, l uint64
 outer:
 	for n != math.MaxUint64 {
@@ -113,20 +113,20 @@ outer:
 }
 
 // Complement returns a new List that is the set algebra complement of the
-// passed List set. The range of the returned list is [0, math.MaxUint32].
-func Complement(list SkipTakeList) SkipTakeList {
+// passed List set. The range of the returned list is [0, math.MaxUint64].
+func Complement(list List) List {
 	return ComplementMax(list, math.MaxUint64)
 }
 
 // ComplementMax returns a new List that is the set algebra complement of the
 // passed List set, bounded to the range [0, max].
-func ComplementMax(list SkipTakeList, max uint64) SkipTakeList {
-	b := Build(&SkipTakeList{})
+func ComplementMax(list List, max uint64) List {
+	b := Build(&List{})
 	complement(&b, list.Decode(), max)
 	return b.Finish()
 }
 
-func complement(result *Builder, set SkipTakeDecoder, max uint64) {
+func complement(result *Builder, set Decoder, max uint64) {
 	var n uint64
 	for {
 		skip, take := set.Next()

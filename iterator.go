@@ -2,34 +2,34 @@ package skiptake
 
 import "math"
 
-// SkipTakeIterator holds the state for iterating and seeking through the
+// Iterator holds the state for iterating and seeking through the
 // original input values.
-type SkipTakeIterator struct {
-	Decoder *SkipTakeDecoder
+type Iterator struct {
+	Decoder *Decoder
 	skipSum uint64
 	take    uint64
 	n       uint64
 }
 
 //Reset resets the iterator to be beginning of the list.
-func (t *SkipTakeIterator) Reset() {
+func (t *Iterator) Reset() {
 	t.Decoder.Reset()
 	t.skipSum = 0
 	t.n = 0
 }
 
-//EOS returns true if the stream is at end-of-stream. Because SkipTakeIterator
+//EOS returns true if the stream is at end-of-stream. Because Iterator
 //can iterate by either individual numbers or whole ranges, EOS will not return
-//true until a call to either Next() or SkipTakeNext() causes EOS to be
+//true until AFTER a call to either Next() or NextSkipTake() causes EOS to be
 //reached.
-func (t SkipTakeIterator) EOS() bool {
+func (t Iterator) EOS() bool {
 	return t.n == math.MaxUint64
 }
 
 //NextSkipTake advances the iterator to the beginning of the next Skip-Take
 //range, returning the skip and take values. A following call to Next() returns
 //the sequence value of the beginning of the interval.
-func (t *SkipTakeIterator) NextSkipTake() (skip, take uint64) {
+func (t *Iterator) NextSkipTake() (skip, take uint64) {
 	skip, take = t.Decoder.Next()
 	if take == 0 {
 		t.n = math.MaxUint64
@@ -44,7 +44,7 @@ func (t *SkipTakeIterator) NextSkipTake() (skip, take uint64) {
 //Next returns the next value in the sequence. Returns max uint64 as
 //end-of-sequence. If following a call to NextSkipTake() or Seek(), returns
 //to sequence value of the new take interval.
-func (t *SkipTakeIterator) Next() uint64 {
+func (t *Iterator) Next() uint64 {
 	if t.take == 0 {
 		skip, take := t.Decoder.Next()
 		if take == 0 {
@@ -64,7 +64,7 @@ func (t *SkipTakeIterator) Next() uint64 {
 // Seek seeks to the i'th value in the expanded sequence. Returns the i'th
 // seqence value as skip, and how many sequential elements until the next skip
 // as take. A following call to Next() returns the same i'th sequence value.
-func (t *SkipTakeIterator) Seek(pos uint64) (uint64, uint64) {
+func (t *Iterator) Seek(pos uint64) (uint64, uint64) {
 	takeSum := t.n + t.take - t.skipSum
 	if pos < takeSum {
 		t.Reset()

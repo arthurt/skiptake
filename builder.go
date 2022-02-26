@@ -6,7 +6,7 @@ package skiptake
 // The resulting list is built by maintaining a current take count which is
 // flushed whenever a non-zero skip occurs.
 type Builder struct {
-	Encoder SkipTakeEncoder
+	Encoder Encoder
 	n       uint64
 	skip    uint64
 	take    uint64
@@ -17,7 +17,7 @@ type Builder struct {
 //
 // Note that Build returns a Builder, not a pointer to a Builder. In order for
 // changes to propage, this builder should be passed by reference.
-func Build(l *SkipTakeList) Builder {
+func Build(l *List) Builder {
 	l.Clear()
 	return Builder{Encoder: l.Encode()}
 }
@@ -67,7 +67,7 @@ func (b *Builder) flush() {
 }
 
 // Finish flushes any pending data to the built list and returns it.
-func (b *Builder) Finish() SkipTakeList {
+func (b *Builder) Finish() List {
 	b.flush()
 	return *b.Encoder.Elements
 }
