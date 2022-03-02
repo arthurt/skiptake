@@ -30,10 +30,14 @@ func (t Iterator) EOS() bool {
 //range, returning the skip and take values. A following call to Next() returns
 //the sequence value of the beginning of the interval.
 func (t *Iterator) NextSkipTake() (skip, take uint64) {
-	skip, take = t.Decoder.Next()
-	if take == 0 {
-		t.n = math.MaxUint64
-		return
+	for take == 0 {
+		if t.Decoder.EOS() {
+			t.n = math.MaxUint64
+			return
+		}
+		nskip, ntake := t.Decoder.Next()
+		skip += nskip
+		take += ntake
 	}
 	t.skipSum += skip
 	t.n += t.take + skip
@@ -45,12 +49,12 @@ func (t *Iterator) NextSkipTake() (skip, take uint64) {
 //end-of-sequence. If following a call to NextSkipTake() or Seek(), returns
 //to sequence value of the new take interval.
 func (t *Iterator) Next() uint64 {
-	if t.take == 0 {
-		skip, take := t.Decoder.Next()
-		if take == 0 {
+	for t.take == 0 {
+		if t.Decoder.EOS() {
 			t.n = math.MaxUint64
 			return math.MaxUint64
 		}
+		skip, take := t.Decoder.Next()
 		t.skipSum += skip
 		t.n += skip
 		t.take = take
@@ -71,10 +75,11 @@ func (t *Iterator) Seek(pos uint64) (uint64, uint64) {
 		takeSum = 0
 	}
 	for takeSum <= pos {
-		_, take := t.NextSkipTake()
-		if take == 0 {
+		if t.Decoder.EOS() {
+			t.n = math.MaxUint64
 			return 0, 0
 		}
+		_, take := t.NextSkipTake()
 		takeSum += take
 	}
 	t.take = takeSum - pos

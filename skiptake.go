@@ -152,13 +152,10 @@ func (l List) String() string {
 func (l List) Format(maxLen int) string {
 	n := uint64(0)
 	b := strings.Builder{}
-	dec := l.Decode()
+
 	first := true
-	for {
-		skip, take := dec.Next()
-		if take == 0 {
-			break
-		}
+	iter := l.Iterate()
+	for skip, take := iter.NextSkipTake(); !iter.EOS(); skip, take = iter.NextSkipTake() {
 		n += skip
 		var s string
 		if take == 1 {
@@ -171,7 +168,7 @@ func (l List) Format(maxLen int) string {
 		if !first {
 			neededCap += 2
 		}
-		if !dec.EOS() {
+		if !iter.EOS() {
 			neededCap += 3
 		}
 
