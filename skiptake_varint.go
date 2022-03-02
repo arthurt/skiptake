@@ -39,23 +39,19 @@ func appendVarint(target []byte, v uint64) []byte {
 	return append(target, ar[:i]...)
 }
 
-// Next returns the next pair of skip, take values. Returns (0,0) as a special
-// case of End-of-Sequence.
+// Next returns the next pair of skip, take values. Returns (0,0) in the case of
+// end-of-sequence, although this sequence can occur within a list.
 func (x *Decoder) Next() (skip, take uint64) {
 	skip = readVarint(x.Elements, &x.i)
 	take = readVarint(x.Elements, &x.i)
-
-	// Try to keep eating so long as skip == 0
-	j := x.i
-	for j < len(x.Elements) {
-		nskip := readVarint(x.Elements, &j)
-		if nskip != 0 {
-			break
-		}
-		take += readVarint(x.Elements, &j)
-		x.i = j
-	}
 	return
+}
+
+// PeekSkip returns the next skip values, without advancing the
+// current decode location.
+func (x *Decoder) PeekSkip() (skip uint64) {
+	j := x.i
+	return readVarint(x.Elements, &j)
 }
 
 // EOS returns if the decoder is a that end of the sequence.
