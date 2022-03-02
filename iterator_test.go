@@ -98,3 +98,48 @@ func Test_SkipTake_IterNextSkipTakeSeek(t *testing.T) {
 	expectUint64(t, skip, 1)
 	expectUint64(t, take, 10)
 }
+
+func Test_SkipTake_IterMixNext(t *testing.T) {
+	list := makeRange([]intrv{
+		intrv{0, 4}, intrv{10, 14}, intrv{20, 24}, intrv{30, 34}, intrv{40, 44}})
+	iter := list.Iterate()
+
+	t.Logf("%v", list)
+
+	// Get skip-take pair. In the interval of [0, 4]
+	skip, take := iter.NextSkipTake()
+	expectUint64(t, skip, 0)
+	expectUint64(t, take, 5)
+
+	// Get individual values. In the interval of [0, 4]
+	expectUint64(t, iter.Next(), 0)
+	expectUint64(t, iter.Next(), 1)
+
+	// Current interval is now [2, 4]
+
+	// Get next skip-take pair. In the interval of [10, 14]
+	skip, take = iter.NextSkipTake()
+	expectUint64(t, skip, 5)
+	expectUint64(t, take, 5)
+
+	// Get next skip-take pair. In the interval of [20, 24]
+	skip, take = iter.NextSkipTake()
+	expectUint64(t, skip, 5)
+	expectUint64(t, take, 5)
+
+	// Get individual values until we leave the interval
+	expectUint64(t, iter.Next(), 20)
+	expectUint64(t, iter.Next(), 21)
+	expectUint64(t, iter.Next(), 22)
+	expectUint64(t, iter.Next(), 23)
+	expectUint64(t, iter.Next(), 24)
+	expectUint64(t, iter.Next(), 30)
+	expectUint64(t, iter.Next(), 31)
+
+	// Get next skip-take pair. In the interval of [40, 44]
+	skip, take = iter.NextSkipTake()
+	expectUint64(t, skip, 5)
+	expectUint64(t, take, 5)
+
+	expectUint64(t, iter.Next(), 40)
+}
