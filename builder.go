@@ -58,16 +58,15 @@ func (b *Builder) Next(n uint64) bool {
 	return true
 }
 
-// flush instructs the builder that it has completed, flushing out the final
-// take count.
+// Finish flushes any pending data to the built list and returns it.
+func (b *Builder) Finish() List {
+	b.flush()
+	b.Encoder.Flush()
+	return *b.Encoder.Elements
+}
+
 func (b *Builder) flush() {
 	if b.take > 0 {
 		b.Encoder.Add(b.skip, b.take)
 	}
-}
-
-// Finish flushes any pending data to the built list and returns it.
-func (b *Builder) Finish() List {
-	b.flush()
-	return *b.Encoder.Elements
 }

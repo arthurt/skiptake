@@ -70,6 +70,11 @@ func (s Encoder) Add(skip, take uint64) {
 	*s.Elements = appendVarint(*s.Elements, take)
 }
 
+// Flush instructs the encoder to write out any pending state.
+func (s Encoder) Flush() {
+	// No-op
+}
+
 // Decode returns a new skiptake.Decoder for the list.
 func (v List) Decode() Decoder {
 	return Decoder{Elements: v}
