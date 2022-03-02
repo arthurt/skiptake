@@ -49,15 +49,11 @@ func (t *Iterator) NextSkipTake() (skip, take uint64) {
 //end-of-sequence. If following a call to NextSkipTake() or Seek(), returns
 //to sequence value of the new take interval.
 func (t *Iterator) Next() uint64 {
-	for t.take == 0 {
-		if t.Decoder.EOS() {
-			t.n = math.MaxUint64
+	if t.take == 0 {
+		t.NextSkipTake()
+		if t.EOS() {
 			return math.MaxUint64
 		}
-		skip, take := t.Decoder.Next()
-		t.skipSum += skip
-		t.n += skip
-		t.take = take
 	}
 	result := t.n
 	t.take--
