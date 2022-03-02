@@ -122,14 +122,14 @@ func Complement(list List) List {
 // passed List set, bounded to the range [0, max].
 func ComplementMax(list List, max uint64) List {
 	b := Build(&List{})
-	complement(&b, list.Decode(), max)
+	complement(&b, list.Iterate(), max)
 	return b.Finish()
 }
 
-func complement(result *Builder, set Decoder, max uint64) {
+func complement(result *Builder, set Iterator, max uint64) {
 	var n uint64
 	for {
-		skip, take := set.Next()
+		skip, take := set.NextSkipTake()
 		if skip > 0 {
 			if n+skip >= max {
 				// End boundary case. Next source skip starts outside our max
