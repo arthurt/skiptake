@@ -74,6 +74,8 @@ func (t *Iterator) NextSkipTake() (skip, take uint64) {
 // Next returns the next value in the sequence. Returns max uint64 as
 // end-of-sequence. If following a call to NextSkipTake() or Seek(), returns
 // the first sequence value of the new take interval.
+//
+// Calling Next shrinks the current interval by one, as returned by Interval().
 func (t *Iterator) Next() uint64 {
 	if t.take == 0 {
 		t.NextSkipTake()
@@ -115,4 +117,18 @@ func (t *Iterator) Seek(pos uint64) (uint64, uint64) {
 	t.take = takeSum - pos
 	t.n = t.skipSum + pos
 	return t.n, t.take
+}
+
+// Interval returns the contigious interval from the expanded sequence that
+// correlates to the current skip-take pair. Returns the first and last values
+// inclusive of this interval. Requires that a call to Next() or NextSkipTake()
+// has been called at least once.
+//
+// Returns (math.MaxUint64, 0) in the case of EOS or iterator that has never
+// had Next() or NextSkipTake() called.
+func (t Iterator) Interval() (first uint64, last uint64) {
+	if t.take == 0 {
+		return math.MaxUint64, 0
+	}
+	return t.n, t.n + t.take - 1
 }

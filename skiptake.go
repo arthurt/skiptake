@@ -150,20 +150,18 @@ func (l List) String() string {
 // return. List which exceed this limit will be truncated with `...`. Otherwise
 // all ranges will be included.
 func (l List) Format(maxLen int) string {
-	n := uint64(0)
 	b := strings.Builder{}
 
 	first := true
 	iter := l.Iterate()
-	for skip, take := iter.NextSkipTake(); !iter.EOS(); skip, take = iter.NextSkipTake() {
-		n += skip
+	for iter.NextSkipTake(); !iter.EOS(); iter.NextSkipTake() {
 		var s string
-		if take == 1 {
-			s = fmt.Sprintf("%d", n)
+		begin, end := iter.Interval()
+		if end <= begin {
+			s = fmt.Sprintf("%d", begin)
 		} else {
-			s = fmt.Sprintf("[%d - %d]", n, n+take-1)
+			s = fmt.Sprintf("[%d - %d]", begin, end)
 		}
-		n += take
 		neededCap := len(s)
 		if !first {
 			neededCap += 2

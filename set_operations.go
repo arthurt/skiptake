@@ -25,11 +25,9 @@ func union(result *Builder, iter []Iterator) {
 		// Find the lowest start of a new range
 		n = math.MaxUint64
 		for _, it := range iter {
-			if !it.EOS() {
-				if it.n < n {
-					n = it.n
-					r = it.take + it.n - 1
-				}
+			if first, last := it.Interval(); first < n {
+				n = first
+				r = last
 			}
 		}
 		// All ranges are done
@@ -46,13 +44,15 @@ func union(result *Builder, iter []Iterator) {
 		for {
 			found := false
 			for i := range iter {
-				it := &iter[i]
-				for !it.EOS() && it.n <= r {
-					if it.take+it.n-1 > r {
-						found = true
-						r = it.take + it.n - 1
+				for it := &iter[i]; !it.EOS(); it.NextSkipTake() {
+					first, last := it.Interval()
+					if first > r {
+						break
 					}
-					it.NextSkipTake()
+					if last > r {
+						found = true
+						r = last
+					}
 				}
 			}
 			// Hit a discontinuity
@@ -83,17 +83,17 @@ func intersection(result *Builder, iter []Iterator) {
 outer:
 	for n != math.MaxUint64 {
 		for i := range iter {
-			it := &iter[i]
 			// Scan intervals while they are before our candidate area.
-			for !it.EOS() && it.n+it.take-1 < n {
-				it.NextSkipTake()
-			}
-
-			if it.n > n {
-				// Increased the lower bound of the candidate interval.
-				n = it.n
-				// Rescan all sequences.
-				continue outer
+			for it := &iter[i]; ; it.NextSkipTake() {
+				if first, last := it.Interval(); last >= n {
+					if first > n {
+						// Increased the lower bound of the candidate interval.
+						n = first
+						// Rescan all sequences.
+						continue outer
+					}
+					break
+				}
 			}
 		}
 
@@ -101,8 +101,8 @@ outer:
 		// Find the longest range of all intervals.
 		r = math.MaxUint64
 		for _, it := range iter {
-			if it.take+it.n-1 < r {
-				r = it.take + it.n - 1
+			if _, last := it.Interval(); last < r {
+				r = last
 			}
 		}
 		result.Skip(n - l)
