@@ -12,7 +12,7 @@ func testEncodeDecode(t *testing.T, values [][2]uint64) {
 		enc.Add(pair[0], pair[1])
 		t.Logf("Add skip: %d, take: %d", pair[0], pair[1])
 	}
-	t.Log(l.String())
+	enc.Flush()
 	t.Logf("Encoded as %d bytes: %v", len([]byte(l)), []byte(l))
 
 	dec := l.Decode()
@@ -44,6 +44,9 @@ func Test_EncodeDecode(t *testing.T) {
 
 	// Common-case: Single offset list
 	testEncodeDecode(t, [][2]uint64{[2]uint64{30, 1}})
+
+	// Last take same as previous and not one.
+	testEncodeDecode(t, [][2]uint64{[2]uint64{0, 2}, [2]uint64{2, 2}})
 
 	// Average-ish case
 	testEncodeDecode(t, [][2]uint64{

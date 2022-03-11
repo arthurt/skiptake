@@ -18,7 +18,7 @@ type Builder struct {
 // Note that Build returns a Builder, not a pointer to a Builder. In order for
 // changes to propage, this builder should be passed by reference.
 func Build(l *List) Builder {
-	l.Clear()
+	l.Reset()
 	return Builder{Encoder: l.Encode()}
 }
 
