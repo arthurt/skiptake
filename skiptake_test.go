@@ -87,8 +87,8 @@ func Test_SkipTake_LargeSkip(t *testing.T) {
 	list := Create(subject)
 	t.Logf("%v -> %v", subject, list)
 
-	if list.Len() != 5 {
-		t.Fatal("Len != 5")
+	if int(list.Len()) != len(subject) {
+		t.Errorf("Len() != %d", len(subject))
 	}
 	result := list.Expand()
 
@@ -101,7 +101,7 @@ func Test_SkipTake_LargeTake(t *testing.T) {
 	list := FromRaw([]uint64{0x10, 0xffffffff, 0, 1})
 
 	if list.Len() != 0x100000000 {
-		t.Fatal("Bad big skip")
+		t.Error("Bad big skip")
 	}
 
 	iter := list.Iterate()
@@ -110,4 +110,19 @@ func Test_SkipTake_LargeTake(t *testing.T) {
 	skip, take := iter.Seek(0xffffffff)
 	expectUint64(t, skip, 0x10000000f)
 	expectUint64(t, take, 1)
+}
+
+func Test_SkipTake_InclusiveMaxValue(t *testing.T) {
+	subject := []uint64{0x100000000000, 0xfffffffffffffffe, 0xffffffffffffffff}
+	list := Create(subject)
+
+	if int(list.Len()) != len(subject) {
+		t.Errorf("Len() != %d", len(subject))
+		return
+	}
+
+	result := list.Expand()
+	if !equalUint64(subject, result) {
+		t.Errorf("%#v != %#v", result, subject)
+	}
 }
