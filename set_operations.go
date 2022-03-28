@@ -13,7 +13,6 @@ func Union(lists ...List) List {
 	iter := make([]Iterator, len(lists))
 	for i := range lists {
 		iter[i] = lists[i].Iterate()
-		iter[i].NextSkipTake()
 	}
 	union(&b, iter)
 	return b.Finish()
@@ -24,7 +23,8 @@ func union(result *Builder, iter []Iterator) {
 	for {
 		// Find the lowest start of a new range
 		n = math.MaxUint64
-		for _, it := range iter {
+		for i := range iter {
+			it := &iter[i]
 			if first, last := it.Interval(); first < n {
 				n = first
 				r = last
@@ -44,8 +44,8 @@ func union(result *Builder, iter []Iterator) {
 		for {
 			found := false
 			for i := range iter {
-				for it := &iter[i]; !it.EOS(); it.NextSkipTake() {
-					first, last := it.Interval()
+				it := &iter[i]
+				for first, last := it.Interval(); first <= last; first, last = it.NextInterval() {
 					if first > r {
 						break
 					}
@@ -72,7 +72,6 @@ func Intersection(lists ...List) List {
 	iter := make([]Iterator, len(lists))
 	for i := range lists {
 		iter[i] = lists[i].Iterate()
-		iter[i].NextSkipTake()
 	}
 	intersection(&b, iter)
 	return b.Finish()
@@ -84,11 +83,12 @@ outer:
 	for n != math.MaxUint64 {
 		for i := range iter {
 			// Scan intervals while they are before our candidate area.
-			for it := &iter[i]; ; it.NextSkipTake() {
-				if it.EOS() {
-					break outer
+			it := &iter[i]
+			for first, last := it.Interval(); ; first, last = it.NextInterval() {
+				if first > last { // EOS
+					return
 				}
-				if first, last := it.Interval(); last >= n {
+				if last >= n {
 					if first > n {
 						// Increased the lower bound of the candidate interval.
 						n = first
