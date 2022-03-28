@@ -48,7 +48,7 @@ func Test_SkipTake_Expand(t *testing.T) {
 	t.Logf("%v -> %v", subject.GetRaw(), result)
 
 	if !equalUint64(expected, result) {
-		t.Fatalf("%v != %v", result, expected)
+		t.Errorf("%v != %v", result, expected)
 	}
 }
 
@@ -59,7 +59,7 @@ func Test_SkipTake_Compress(t *testing.T) {
 	result := Create(subject)
 	t.Logf("%v -> %v", subject, result)
 	if !Equal(expected, result) {
-		t.Fatalf("Encode %v != %v", result, expected)
+		t.Errorf("Encode %v != %v", result, expected)
 	}
 }
 
@@ -72,13 +72,13 @@ func Test_SkipTake_CompressExpand(t *testing.T) {
 
 	t.Logf("%v -> %v", list, result)
 	if !equalUint64(subject, result) {
-		t.Fatalf("%v != %v", subject, result)
+		t.Errorf("%v != %v", subject, result)
 	}
 }
 
 func expectUint64(t *testing.T, result, expected uint64) {
 	if result != expected {
-		t.Fatalf("%d != %d", result, expected)
+		t.Errorf("%d != %d", result, expected)
 	}
 }
 
@@ -93,7 +93,7 @@ func Test_SkipTake_LargeSkip(t *testing.T) {
 	result := list.Expand()
 
 	if !equalUint64(subject, result) {
-		t.Fatalf("%v != %v", result, subject)
+		t.Errorf("%v != %v", result, subject)
 	}
 }
 
