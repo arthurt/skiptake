@@ -85,6 +85,9 @@ outer:
 		for i := range iter {
 			// Scan intervals while they are before our candidate area.
 			for it := &iter[i]; ; it.NextSkipTake() {
+				if it.EOS() {
+					break outer
+				}
 				if first, last := it.Interval(); last >= n {
 					if first > n {
 						// Increased the lower bound of the candidate interval.
