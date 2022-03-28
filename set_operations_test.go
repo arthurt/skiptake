@@ -22,7 +22,7 @@ func Test_SkipTake_Union(t *testing.T) {
 	expected := []uint64{10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 31, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44}
 	result := union.Expand()
 	if !equalUint64(expected, result) {
-		t.Fatalf("%v != %v", result, expected)
+		t.Errorf("%v != %v", result, expected)
 	}
 }
 
@@ -44,7 +44,7 @@ func Test_SkipTake_Intersection(t *testing.T) {
 	expected := []uint64{12, 13, 14, 16, 41}
 	result := intersection.Expand()
 	if !equalUint64(expected, result) {
-		t.Fatalf("%v != %v", result, expected)
+		t.Errorf("%v != %v", result, expected)
 	}
 }
 
@@ -55,7 +55,7 @@ func testComplement(t *testing.T, subject, expected List, max uint64) {
 	t.Logf("Complement Set (max %d): %v", max, complement)
 
 	if !Equal(complement, expected) {
-		t.Fatalf("%v != %v", complement, expected)
+		t.Errorf("%v != %v", complement, expected)
 		return
 	}
 
@@ -63,7 +63,7 @@ func testComplement(t *testing.T, subject, expected List, max uint64) {
 	reverse := ComplementMax(complement, max)
 	t.Logf("Complement of Complement (max %d): %v", max, reverse)
 	if !Equal(reverse, subject) {
-		t.Fatalf("Complement is not idempotent: %v != %v", reverse, subject)
+		t.Errorf("Complement is not idempotent: %v != %v", reverse, subject)
 		return
 	}
 }
