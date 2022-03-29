@@ -4,48 +4,109 @@ import (
 	"testing"
 )
 
-func Test_SkipTake_Union(t *testing.T) {
-
-	list1 := Create([]uint64{10, 11, 12, 13, 14})
-	list2 := Create([]uint64{15, 16, 17, 18, 19})
-	list3 := Create([]uint64{31, 33, 34, 36, 37, 39})
-	list4 := Create([]uint64{35, 36, 37, 38, 39, 40, 41, 42, 43, 44})
-
-	t.Logf("Input Set 1: %v", list1)
-	t.Logf("Input Set 2: %v", list2)
-	t.Logf("Input Set 3: %v", list3)
-	t.Logf("Input Set 4: %v", list4)
-
-	union := Union(list1, list2, list3, list4)
+func testUnion(t *testing.T, expected []uint64, lists ...List) {
+	for i, l := range lists {
+		t.Logf("Input Set %d: %v", i, l)
+	}
+	union := Union(lists...)
 	t.Logf("Union: %v", union)
-
-	expected := []uint64{10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 31, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44}
 	result := union.Expand()
 	if !equalUint64(expected, result) {
 		t.Errorf("%v != %v", result, expected)
 	}
 }
 
-func Test_SkipTake_Intersection(t *testing.T) {
+func TestSetOperationsUnion(t *testing.T) {
+	t.Run("NoList", func(t *testing.T) {
+		testUnion(t, []uint64{})
+	})
 
-	list1 := Create([]uint64{10, 11, 12, 13, 14, 16, 19, 20, 21, 41})
-	list2 := Create([]uint64{5, 12, 13, 14, 15, 16, 40, 41})
-	list3 := makeRange([]intrv{intrv{10, 91}, intrv{100, 104}})
-	list4 := Create([]uint64{1, 3, 5, 7, 9, 11, 12, 13, 14, 15, 16, 17, 19, 21, 23, 25, 40, 41})
+	t.Run("EmptyList", func(t *testing.T) {
+		testUnion(t, []uint64{}, List{})
+	})
 
-	t.Logf("Input Set 1: %v", list1)
-	t.Logf("Input Set 2: %v", list2)
-	t.Logf("Input Set 3: %v", list3)
-	t.Logf("Input Set 4: %v", list4)
+	t.Run("SingleList", func(t *testing.T) {
+		list := Create([]uint64{3, 4, 5, 15, 16})
+		// Union with one argument should return itself
+		testUnion(t, list.Expand(), list)
+	})
 
-	intersection := Intersection(list1, list2, list3, list4)
+	t.Run("Common", func(t *testing.T) {
+		testUnion(t,
+			[]uint64{10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 31, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44},
+			Create([]uint64{10, 11, 12, 13, 14}),
+			Create([]uint64{15, 16, 17, 18, 19}),
+			Create([]uint64{31, 33, 34, 36, 37, 39}),
+			Create([]uint64{35, 36, 37, 38, 39, 40, 41, 42, 43, 44}),
+		)
+	})
+
+	t.Run("MaxRange", func(t *testing.T) {
+		testUnion(t,
+			[]uint64{10, 30, 0xfffffffffffffffe, 0xffffffffffffffff},
+			Create([]uint64{10}),
+			Create([]uint64{30, 0xfffffffffffffffe}),
+			Create([]uint64{0xffffffffffffffff}),
+		)
+	})
+}
+
+func testIntersection(t *testing.T, expected []uint64, lists ...List) {
+	for i, l := range lists {
+		t.Logf("Input Set %d: %v", i, l)
+	}
+	intersection := Intersection(lists...)
 	t.Logf("Intersection: %v", intersection)
-
-	expected := []uint64{12, 13, 14, 16, 41}
 	result := intersection.Expand()
 	if !equalUint64(expected, result) {
 		t.Errorf("%v != %v", result, expected)
 	}
+}
+
+func TestSetOperationsIntersection(t *testing.T) {
+	t.Run("NoList", func(t *testing.T) {
+		testIntersection(t, []uint64{})
+	})
+
+	t.Run("EmptyList", func(t *testing.T) {
+		testIntersection(t, []uint64{}, List{})
+	})
+
+	t.Run("SingleList", func(t *testing.T) {
+		list := Create([]uint64{3, 4, 5, 15, 16})
+		// Interestion with one argument should return itself
+		testIntersection(t, list.Expand(), list)
+	})
+
+	t.Run("Common", func(t *testing.T) {
+		testIntersection(t,
+			[]uint64{12, 13, 14, 16, 41},
+			Create([]uint64{10, 11, 12, 13, 14, 16, 19, 20, 21, 41}),
+			Create([]uint64{5, 12, 13, 14, 15, 16, 40, 41, 50, 51, 53}),
+			makeRange([]intrv{intrv{10, 91}, intrv{100, 104}}),
+			Create([]uint64{1, 3, 5, 7, 9, 11, 12, 13, 14, 15, 16, 17, 19, 21, 23, 25, 40, 41}),
+		)
+	})
+
+	t.Run("NoCommon", func(t *testing.T) {
+		testIntersection(t,
+			[]uint64{},
+			Create([]uint64{10, 11, 19, 20, 21, 42}),
+			Create([]uint64{5, 40, 41, 50, 51, 53}),
+			makeRange([]intrv{intrv{17, 91}, intrv{100, 104}}),
+			Create([]uint64{1, 3, 5, 7, 9, 11, 17, 19, 21, 23, 25, 40, 41}),
+		)
+	})
+
+	t.Run("MaxRange", func(t *testing.T) {
+		testIntersection(t,
+			[]uint64{0xfffffffffffffffe, 0xffffffffffffffff},
+			Create([]uint64{0xfffffffffffffffe, 0xffffffffffffffff}),
+			Create([]uint64{0, 1, 2, 0xfffffffffffffffe, 0xffffffffffffffff}),
+			makeRange([]intrv{intrv{100, 110}, intrv{200, 210}, intrv{0xfffffffffffffff0, 0xffffffffffffffff}}),
+			Create([]uint64{40, 42, 44, 0xfffffffffffffffe, 0xffffffffffffffff}),
+		)
+	})
 }
 
 func testComplement(t *testing.T, subject, expected List, max uint64) {
@@ -68,38 +129,42 @@ func testComplement(t *testing.T, subject, expected List, max uint64) {
 	}
 }
 
-func Test_SkipTake_ComplementMax(t *testing.T) {
+func TestSetOperationsComplementMax(t *testing.T) {
 	const max uint64 = 19
 
-	// Test input within range
-	testComplement(
-		t,
-		makeRange([]intrv{intrv{2, 3}, intrv{8, 11}, intrv{17, 17}}),
-		makeRange([]intrv{intrv{0, 1}, intrv{4, 7}, intrv{12, 16}, intrv{18, 19}}),
-		max,
-	)
+	t.Run("Empty", func(t *testing.T) {
+		testComplement(
+			t,
+			List{},
+			makeRange([]intrv{intrv{0, 19}}),
+			max,
+		)
+	})
 
-	// Test input overlaps start
-	testComplement(
-		t,
-		makeRange([]intrv{intrv{0, 1}, intrv{4, 5}}),
-		makeRange([]intrv{intrv{2, 3}, intrv{6, 19}}),
-		max,
-	)
+	t.Run("InRange", func(t *testing.T) {
+		testComplement(
+			t,
+			makeRange([]intrv{intrv{2, 3}, intrv{8, 11}, intrv{17, 17}}),
+			makeRange([]intrv{intrv{0, 1}, intrv{4, 7}, intrv{12, 16}, intrv{18, 19}}),
+			max,
+		)
+	})
 
-	// Test input overlaps end
-	testComplement(
-		t,
-		makeRange([]intrv{intrv{4, 5}, intrv{11, 19}}),
-		makeRange([]intrv{intrv{0, 3}, intrv{6, 10}}),
-		max,
-	)
+	t.Run("OverlapStart", func(t *testing.T) {
+		testComplement(
+			t,
+			makeRange([]intrv{intrv{0, 1}, intrv{4, 5}}),
+			makeRange([]intrv{intrv{2, 3}, intrv{6, 19}}),
+			max,
+		)
+	})
 
-	// Test empty input
-	testComplement(
-		t,
-		List{},
-		makeRange([]intrv{intrv{0, 19}}),
-		max,
-	)
+	t.Run("OverlapEnd", func(t *testing.T) {
+		testComplement(
+			t,
+			makeRange([]intrv{intrv{4, 5}, intrv{11, 19}}),
+			makeRange([]intrv{intrv{0, 3}, intrv{6, 10}}),
+			max,
+		)
+	})
 }
