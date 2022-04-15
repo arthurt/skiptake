@@ -12,7 +12,7 @@ func testUnion(t *testing.T, expected []uint64, lists ...List) {
 	t.Logf("Union: %v", union)
 	result := union.Expand()
 	if !equalUint64(expected, result) {
-		t.Errorf("%v != %v", result, expected)
+		t.Errorf("%v != %v", union, Create(expected))
 	}
 }
 
@@ -38,6 +38,14 @@ func TestSetOperationsUnion(t *testing.T) {
 			Create([]uint64{15, 16, 17, 18, 19}),
 			Create([]uint64{31, 33, 34, 36, 37, 39}),
 			Create([]uint64{35, 36, 37, 38, 39, 40, 41, 42, 43, 44}),
+		)
+	})
+
+	t.Run("Insert", func(t *testing.T) {
+		testUnion(t,
+			[]uint64{1, 3, 5, 10, 15, 20, 25},
+			Create([]uint64{1, 5, 10, 15, 20, 25}),
+			Create([]uint64{3}),
 		)
 	})
 
