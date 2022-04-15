@@ -32,10 +32,10 @@ func union(result *Builder, iter []Iterator) {
 			}
 			found = true
 			if first <= n {
-				n = first
-				if r < last {
+				if first < n || last > r {
 					r = last
 				}
+				n = first
 			}
 		}
 		// All ranges are done
