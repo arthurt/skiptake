@@ -76,7 +76,7 @@ func appendVarint2(target []byte, u uint64, e int8) []byte {
 		ar[i] = x | 0x80
 		u >>= (7 - split)
 		i++
-		for u > 0x80 {
+		for u >= 0x80 {
 			ar[i] = byte(u) | 0x80
 			u >>= 7
 			i++
@@ -85,6 +85,7 @@ func appendVarint2(target []byte, u uint64, e int8) []byte {
 	} else {
 		ar[i] = x
 	}
+
 	return append(target, ar[:i+1]...)
 }
 
