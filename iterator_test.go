@@ -5,7 +5,7 @@ import "testing"
 func Test_SkipTake_Seek(t *testing.T) {
 
 	subject := []uint64{10, 11, 12, 13, 14, 20, 21, 22, 30, 40, 41, 42, 43, 44, 50}
-	list := Create(subject)
+	list := Create(subject...)
 	t.Logf("%v -> %v", subject, list)
 
 	iter := list.Iterate()

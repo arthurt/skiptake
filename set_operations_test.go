@@ -12,7 +12,7 @@ func testUnion(t *testing.T, expected []uint64, lists ...List) {
 	t.Logf("Union: %v", union)
 	result := union.Expand()
 	if !equalUint64(expected, result) {
-		t.Errorf("%v != %v", union, Create(expected))
+		t.Errorf("%v != %v", union, Create(expected...))
 	}
 }
 
@@ -26,7 +26,7 @@ func TestSetOperationsUnion(t *testing.T) {
 	})
 
 	t.Run("SingleList", func(t *testing.T) {
-		list := Create([]uint64{3, 4, 5, 15, 16})
+		list := Create(3, 4, 5, 15, 16)
 		// Union with one argument should return itself
 		testUnion(t, list.Expand(), list)
 	})
@@ -34,46 +34,46 @@ func TestSetOperationsUnion(t *testing.T) {
 	t.Run("DifferentLength", func(t *testing.T) {
 		testUnion(t,
 			[]uint64{0, 1, 2, 4, 5, 6, 9, 10},
-			Create2(2),
-			Create2(1, 4),
-			Create2(0, 5, 6, 9, 10),
+			Create(2),
+			Create(1, 4),
+			Create(0, 5, 6, 9, 10),
 		)
 	})
 
 	t.Run("Common", func(t *testing.T) {
 		testUnion(t,
 			[]uint64{10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 31, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44},
-			Create([]uint64{10, 11, 12, 13, 14}),
-			Create([]uint64{15, 16, 17, 18, 19}),
-			Create([]uint64{31, 33, 34, 36, 37, 39}),
-			Create([]uint64{35, 36, 37, 38, 39, 40, 41, 42, 43, 44}),
+			Create(10, 11, 12, 13, 14),
+			Create(15, 16, 17, 18, 19),
+			Create(31, 33, 34, 36, 37, 39),
+			Create(35, 36, 37, 38, 39, 40, 41, 42, 43, 44),
 		)
 	})
 
 	t.Run("Combine", func(t *testing.T) {
 		testUnion(t,
 			[]uint64{1, 3, 5, 10, 15, 20, 25},
-			Create([]uint64{1, 5, 10, 15, 20, 25}),
-			Create([]uint64{3}),
+			Create(1, 5, 10, 15, 20, 25),
+			Create(3),
 		)
 	})
 
 	t.Run("Insert", func(t *testing.T) {
 		testUnion(t,
 			[]uint64{21, 31, 38, 53},
-			Create([]uint64{31}),
-			Create([]uint64{38}),
-			Create([]uint64{53}),
-			Create([]uint64{21}),
+			Create(31),
+			Create(38),
+			Create(53),
+			Create(21),
 		)
 	})
 
 	t.Run("MaxRange", func(t *testing.T) {
 		testUnion(t,
 			[]uint64{10, 30, 0xfffffffffffffffe, 0xffffffffffffffff},
-			Create([]uint64{10}),
-			Create([]uint64{30, 0xfffffffffffffffe}),
-			Create([]uint64{0xffffffffffffffff}),
+			Create(10),
+			Create(30, 0xfffffffffffffffe),
+			Create(0xffffffffffffffff),
 		)
 	})
 }
@@ -100,7 +100,7 @@ func TestSetOperationsIntersection(t *testing.T) {
 	})
 
 	t.Run("SingleList", func(t *testing.T) {
-		list := Create([]uint64{3, 4, 5, 15, 16})
+		list := Create(3, 4, 5, 15, 16)
 		// Interestion with one argument should return itself
 		testIntersection(t, list.Expand(), list)
 	})
@@ -108,30 +108,30 @@ func TestSetOperationsIntersection(t *testing.T) {
 	t.Run("Common", func(t *testing.T) {
 		testIntersection(t,
 			[]uint64{12, 13, 14, 16, 41},
-			Create([]uint64{10, 11, 12, 13, 14, 16, 19, 20, 21, 41}),
-			Create([]uint64{5, 12, 13, 14, 15, 16, 40, 41, 50, 51, 53}),
+			Create(10, 11, 12, 13, 14, 16, 19, 20, 21, 41),
+			Create(5, 12, 13, 14, 15, 16, 40, 41, 50, 51, 53),
 			makeRange([]intrv{intrv{10, 91}, intrv{100, 104}}),
-			Create([]uint64{1, 3, 5, 7, 9, 11, 12, 13, 14, 15, 16, 17, 19, 21, 23, 25, 40, 41}),
+			Create(1, 3, 5, 7, 9, 11, 12, 13, 14, 15, 16, 17, 19, 21, 23, 25, 40, 41),
 		)
 	})
 
 	t.Run("NoCommon", func(t *testing.T) {
 		testIntersection(t,
 			[]uint64{},
-			Create([]uint64{10, 11, 19, 20, 21, 42}),
-			Create([]uint64{5, 40, 41, 50, 51, 53}),
+			Create(10, 11, 19, 20, 21, 42),
+			Create(5, 40, 41, 50, 51, 53),
 			makeRange([]intrv{intrv{17, 91}, intrv{100, 104}}),
-			Create([]uint64{1, 3, 5, 7, 9, 11, 17, 19, 21, 23, 25, 40, 41}),
+			Create(1, 3, 5, 7, 9, 11, 17, 19, 21, 23, 25, 40, 41),
 		)
 	})
 
 	t.Run("MaxRange", func(t *testing.T) {
 		testIntersection(t,
 			[]uint64{0xfffffffffffffffe, 0xffffffffffffffff},
-			Create([]uint64{0xfffffffffffffffe, 0xffffffffffffffff}),
-			Create([]uint64{0, 1, 2, 0xfffffffffffffffe, 0xffffffffffffffff}),
+			Create(0xfffffffffffffffe, 0xffffffffffffffff),
+			Create(0, 1, 2, 0xfffffffffffffffe, 0xffffffffffffffff),
 			makeRange([]intrv{intrv{100, 110}, intrv{200, 210}, intrv{0xfffffffffffffff0, 0xffffffffffffffff}}),
-			Create([]uint64{40, 42, 44, 0xfffffffffffffffe, 0xffffffffffffffff}),
+			Create(40, 42, 44, 0xfffffffffffffffe, 0xffffffffffffffff),
 		)
 	})
 }

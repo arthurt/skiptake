@@ -48,7 +48,7 @@ type List []byte
 
 // Create creates a skip-take list from the passed slice of values. These
 // values should be a strictly increasing sequence. Returns nil if not.
-func Create(values []uint64) List {
+func Create(values ...uint64) List {
 	b := Build(&List{})
 	for _, v := range values {
 		if !b.Next(v) {

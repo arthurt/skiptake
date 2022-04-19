@@ -1,6 +1,7 @@
 package skiptake
 
 import (
+	"bytes"
 	"testing"
 )
 
@@ -35,7 +36,26 @@ func Test_makeRange(t *testing.T) {
 	result := subject.Expand()
 
 	if !equalUint64(expected, result) {
-		t.Fatalf("Test function makeRange() Does not work: %v != %v", subject, Create(expected))
+		t.Fatalf("Test function makeRange() Does not work: %v != %v", subject, Create(expected...))
+	}
+}
+
+func Test_SkipTake_Create(t *testing.T) {
+	subject := []uint64{533252, 2120193, 3173236, 3875580}
+	expected := FromRaw([]uint64{533252, 1,
+		2120193 - 533252 - 1, 1,
+		3173236 - 2120193 - 1, 1,
+		3875580 - 3173236 - 1, 1})
+	result := Create(subject...)
+
+	if bytes.Compare(result, expected) != 0 {
+		t.Errorf("%s != %s", result.String(), expected.String())
+	}
+	t.Logf("%#v", []byte(result))
+
+	expanded := result.Expand()
+	if !equalUint64(subject, expanded) {
+		t.Errorf("%v != %v", subject, expanded)
 	}
 }
 
@@ -56,7 +76,7 @@ func Test_SkipTake_Compress(t *testing.T) {
 
 	subject := []uint64{2, 3, 4, 5, 9, 11, 13, 15, 16}
 	expected := FromRaw([]uint64{2, 4, 3, 1, 1, 1, 1, 1, 1, 2})
-	result := Create(subject)
+	result := Create(subject...)
 	t.Logf("%v -> %v", subject, result)
 	if !Equal(expected, result) {
 		t.Errorf("Encode %v != %v", result, expected)
@@ -65,7 +85,7 @@ func Test_SkipTake_Compress(t *testing.T) {
 
 func Test_SkipTake_CompressExpand(t *testing.T) {
 	subject := []uint64{2, 3, 4, 5, 9, 22, 23, 24, 100, 200, 201}
-	list := Create(subject)
+	list := Create(subject...)
 	t.Logf("%v -> %v", subject, list)
 
 	result := list.Expand()
@@ -84,7 +104,7 @@ func expectUint64(t *testing.T, result, expected uint64) {
 
 func Test_SkipTake_LargeSkip(t *testing.T) {
 	subject := []uint64{0x200000000, 0x200000001, 0xaaaabbbbccccddd0, 0xaaaabbbbccccddd1, 0xaaaabbbbccccddd2}
-	list := Create(subject)
+	list := Create(subject...)
 	t.Logf("%v -> %v", subject, list)
 
 	if int(list.Len()) != len(subject) {
@@ -114,7 +134,7 @@ func Test_SkipTake_LargeTake(t *testing.T) {
 
 func Test_SkipTake_InclusiveMaxValue(t *testing.T) {
 	subject := []uint64{0x100000000000, 0xfffffffffffffffe, 0xffffffffffffffff}
-	list := Create(subject)
+	list := Create(subject...)
 
 	if int(list.Len()) != len(subject) {
 		t.Errorf("Len() != %d", len(subject))
