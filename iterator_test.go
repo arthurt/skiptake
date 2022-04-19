@@ -100,8 +100,8 @@ func Test_SkipTake_IterNextSkipTakeSeek(t *testing.T) {
 }
 
 func Test_SkipTake_IterMixNext(t *testing.T) {
-	list := makeRange([]intrv{
-		intrv{0, 4}, intrv{10, 14}, intrv{20, 24}, intrv{30, 34}, intrv{40, 44}})
+	list := makeRange(
+		intrv{0, 4}, intrv{10, 14}, intrv{20, 24}, intrv{30, 34}, intrv{40, 44})
 	iter := list.Iterate()
 
 	t.Logf("%v", list)

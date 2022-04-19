@@ -20,7 +20,7 @@ func equalUint64(a, b []uint64) bool {
 
 type intrv [2]uint
 
-func makeRange(args []intrv) List {
+func makeRange(args ...intrv) List {
 	b := Build(&List{})
 	for _, p := range args {
 		b.Next(uint64(p[0]))
@@ -31,7 +31,7 @@ func makeRange(args []intrv) List {
 
 // Test the testers
 func Test_makeRange(t *testing.T) {
-	subject := makeRange([]intrv{intrv{0, 2}, intrv{4, 5}})
+	subject := makeRange(intrv{0, 2}, intrv{4, 5})
 	expected := []uint64{0, 1, 2, 4, 5}
 	result := subject.Expand()
 

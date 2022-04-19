@@ -110,7 +110,7 @@ func TestSetOperationsIntersection(t *testing.T) {
 			[]uint64{12, 13, 14, 16, 41},
 			Create(10, 11, 12, 13, 14, 16, 19, 20, 21, 41),
 			Create(5, 12, 13, 14, 15, 16, 40, 41, 50, 51, 53),
-			makeRange([]intrv{intrv{10, 91}, intrv{100, 104}}),
+			makeRange(intrv{10, 91}, intrv{100, 104}),
 			Create(1, 3, 5, 7, 9, 11, 12, 13, 14, 15, 16, 17, 19, 21, 23, 25, 40, 41),
 		)
 	})
@@ -120,7 +120,7 @@ func TestSetOperationsIntersection(t *testing.T) {
 			[]uint64{},
 			Create(10, 11, 19, 20, 21, 42),
 			Create(5, 40, 41, 50, 51, 53),
-			makeRange([]intrv{intrv{17, 91}, intrv{100, 104}}),
+			makeRange(intrv{17, 91}, intrv{100, 104}),
 			Create(1, 3, 5, 7, 9, 11, 17, 19, 21, 23, 25, 40, 41),
 		)
 	})
@@ -130,7 +130,7 @@ func TestSetOperationsIntersection(t *testing.T) {
 			[]uint64{0xfffffffffffffffe, 0xffffffffffffffff},
 			Create(0xfffffffffffffffe, 0xffffffffffffffff),
 			Create(0, 1, 2, 0xfffffffffffffffe, 0xffffffffffffffff),
-			makeRange([]intrv{intrv{100, 110}, intrv{200, 210}, intrv{0xfffffffffffffff0, 0xffffffffffffffff}}),
+			makeRange(intrv{100, 110}, intrv{200, 210}, intrv{0xfffffffffffffff0, 0xffffffffffffffff}),
 			Create(40, 42, 44, 0xfffffffffffffffe, 0xffffffffffffffff),
 		)
 	})
@@ -163,7 +163,7 @@ func TestSetOperationsComplementMax(t *testing.T) {
 		testComplement(
 			t,
 			List{},
-			makeRange([]intrv{intrv{0, 19}}),
+			makeRange(intrv{0, 19}),
 			max,
 		)
 	})
@@ -171,8 +171,8 @@ func TestSetOperationsComplementMax(t *testing.T) {
 	t.Run("InRange", func(t *testing.T) {
 		testComplement(
 			t,
-			makeRange([]intrv{intrv{2, 3}, intrv{8, 11}, intrv{17, 17}}),
-			makeRange([]intrv{intrv{0, 1}, intrv{4, 7}, intrv{12, 16}, intrv{18, 19}}),
+			makeRange(intrv{2, 3}, intrv{8, 11}, intrv{17, 17}),
+			makeRange(intrv{0, 1}, intrv{4, 7}, intrv{12, 16}, intrv{18, 19}),
 			max,
 		)
 	})
@@ -180,8 +180,8 @@ func TestSetOperationsComplementMax(t *testing.T) {
 	t.Run("OverlapStart", func(t *testing.T) {
 		testComplement(
 			t,
-			makeRange([]intrv{intrv{0, 1}, intrv{4, 5}}),
-			makeRange([]intrv{intrv{2, 3}, intrv{6, 19}}),
+			makeRange(intrv{0, 1}, intrv{4, 5}),
+			makeRange(intrv{2, 3}, intrv{6, 19}),
 			max,
 		)
 	})
@@ -189,8 +189,8 @@ func TestSetOperationsComplementMax(t *testing.T) {
 	t.Run("OverlapEnd", func(t *testing.T) {
 		testComplement(
 			t,
-			makeRange([]intrv{intrv{4, 5}, intrv{11, 19}}),
-			makeRange([]intrv{intrv{0, 3}, intrv{6, 10}}),
+			makeRange(intrv{4, 5}, intrv{11, 19}),
+			makeRange(intrv{0, 3}, intrv{6, 10}),
 			max,
 		)
 	})
