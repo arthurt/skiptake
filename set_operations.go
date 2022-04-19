@@ -3,14 +3,44 @@ package skiptake
 // Set algebra operations on skiptake.List instances
 
 import (
+	"container/heap"
 	"math"
 )
+
+// Implement container/heap.Interface for a set of Iterators.
+type firstHeap []Iterator
+
+func (m firstHeap) Len() int      { return len(m) }
+func (m firstHeap) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
+
+func (m firstHeap) Less(i, j int) bool {
+	fi, li := m[i].Interval()
+	fj, lj := m[j].Interval()
+	if fi == fj {
+		// Sort by soonest ending, sorting EOS as after.
+		// If m[i] is not EOS and (m[j] is EOS or ends after m[i])
+		return li >= fi && (li < lj || lj < fj)
+	}
+	return fi < fj
+}
+
+func (m *firstHeap) Push(x interface{}) {
+	*m = append(*m, x.(Iterator))
+}
+
+func (m *firstHeap) Pop() interface{} {
+	old := *m
+	n := len(old)
+	x := old[n-1]
+	*m = old[:n-1]
+	return x
+}
 
 // Union returns a new List that is the computed set algebra union of the passed
 // slice of lists.
 func Union(lists ...List) List {
 	b := Build(&List{})
-	iter := make([]Iterator, len(lists))
+	iter := make(firstHeap, len(lists))
 	for i := range lists {
 		iter[i] = lists[i].Iterate()
 	}
@@ -18,54 +48,42 @@ func Union(lists ...List) List {
 	return b.Finish()
 }
 
-func union(result *Builder, iter []Iterator) {
-	var n, r, l uint64
-	for {
-		// Find the lowest start of a new range
-		n = math.MaxUint64
-		found := false
-		for i := range iter {
-			it := &iter[i]
-			first, last := it.Interval()
-			if first > last { // EOS
-				continue
-			}
-			found = true
-			if first <= n {
-				if first < n || last > r {
-					r = last
-				}
-				n = first
-			}
-		}
-		// All ranges are done
-		if !found {
-			break
-		}
+func union(result *Builder, iter firstHeap) {
 
-		// Have the start of a new output range.
+	var n uint64 // Current candidate intersection interval first value
+	var r uint64 // Current candidate intersection interval last value
+	var l uint64 // Proceededing non-intersection interval first value
+
+	heap.Init(&iter)
+	for len(iter) > 0 {
+		// Get the earliest interval start
+		first, last := iter[0].Interval()
+		if first > last { // EOS
+			// The earliest iterator is at EOS, we are done.
+			return
+		}
+		iter[0].NextInterval()
+		heap.Fix(&iter, 0)
+		n, r = first, last
 		result.Skip(n - l)
 
-		// Run through the sequences, eating ranges within our found range,
-		// while also extending the output range should a found range start
-		// within but extend beyond it.
+		// Keep searching and extending the output interval
 		for {
-			found = false
-			for i := range iter {
-				it := &iter[i]
-				for first, last := it.Interval(); first <= last; first, last = it.NextInterval() {
-					if first > r {
-						break
-					}
-					if last > r {
-						found = true
-						r = last
-					}
-				}
-			}
-			// Hit a discontinuity
-			if !found {
+			first, last = iter[0].Interval()
+			if first > last { // EOS
+				heap.Pop(&iter)
 				break
+			}
+			if first > r {
+				// Next earliest is outside of interval.
+				// Have a discontinuity.
+				break
+			}
+			iter[0].NextInterval()
+			heap.Fix(&iter, 0)
+			if last > r {
+				// Extend the output interval
+				r = last
 			}
 		}
 		result.Take(r - n)
