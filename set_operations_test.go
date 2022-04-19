@@ -31,6 +31,15 @@ func TestSetOperationsUnion(t *testing.T) {
 		testUnion(t, list.Expand(), list)
 	})
 
+	t.Run("DifferentLength", func(t *testing.T) {
+		testUnion(t,
+			[]uint64{0, 1, 2, 4, 5, 6, 9, 10},
+			Create2(2),
+			Create2(1, 4),
+			Create2(0, 5, 6, 9, 10),
+		)
+	})
+
 	t.Run("Common", func(t *testing.T) {
 		testUnion(t,
 			[]uint64{10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 31, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44},
@@ -41,11 +50,21 @@ func TestSetOperationsUnion(t *testing.T) {
 		)
 	})
 
-	t.Run("Insert", func(t *testing.T) {
+	t.Run("Combine", func(t *testing.T) {
 		testUnion(t,
 			[]uint64{1, 3, 5, 10, 15, 20, 25},
 			Create([]uint64{1, 5, 10, 15, 20, 25}),
 			Create([]uint64{3}),
+		)
+	})
+
+	t.Run("Insert", func(t *testing.T) {
+		testUnion(t,
+			[]uint64{21, 31, 38, 53},
+			Create([]uint64{31}),
+			Create([]uint64{38}),
+			Create([]uint64{53}),
+			Create([]uint64{21}),
 		)
 	})
 
