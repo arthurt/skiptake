@@ -61,18 +61,16 @@ func Create(values ...uint64) List {
 // Equal returns true if two lists are the same. That is, they contain the same
 // subsequence.
 func Equal(a, b List) bool {
-	ad := a.Decode()
-	bd := b.Decode()
-
-	for !ad.EOS() {
-		as, at := ad.Next()
-		bs, bt := bd.Next()
+	ai := a.Iterate()
+	bi := b.Iterate()
+	for !ai.EOS() {
+		as, at := ai.NextSkipTake()
+		bs, bt := bi.NextSkipTake()
 		if as != bs || at != bt {
 			return false
 		}
 	}
-
-	if !bd.EOS() {
+	if !bi.EOS() {
 		return false
 	}
 	return true
