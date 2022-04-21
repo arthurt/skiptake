@@ -42,10 +42,10 @@ func Test_makeRange(t *testing.T) {
 
 func Test_SkipTake_Create(t *testing.T) {
 	subject := []uint64{533252, 2120193, 3173236, 3875580}
-	expected := FromRaw([]uint64{533252, 1,
-		2120193 - 533252 - 1, 1,
-		3173236 - 2120193 - 1, 1,
-		3875580 - 3173236 - 1, 1})
+	expected := FromRaw(533252, 1,
+		2120193-533252-1, 1,
+		3173236-2120193-1, 1,
+		3875580-3173236-1, 1)
 	result := Create(subject...)
 
 	if bytes.Compare(result, expected) != 0 {
@@ -61,7 +61,7 @@ func Test_SkipTake_Create(t *testing.T) {
 
 func Test_SkipTake_Expand(t *testing.T) {
 
-	subject := FromRaw([]uint64{5, 3, 10, 1, 1, 2})
+	subject := FromRaw(5, 3, 10, 1, 1, 2)
 	expected := []uint64{5, 6, 7, 18, 20, 21}
 	result := subject.Expand()
 
@@ -75,7 +75,7 @@ func Test_SkipTake_Expand(t *testing.T) {
 func Test_SkipTake_Compress(t *testing.T) {
 
 	subject := []uint64{2, 3, 4, 5, 9, 11, 13, 15, 16}
-	expected := FromRaw([]uint64{2, 4, 3, 1, 1, 1, 1, 1, 1, 2})
+	expected := FromRaw(2, 4, 3, 1, 1, 1, 1, 1, 1, 2)
 	result := Create(subject...)
 	t.Logf("%v -> %v", subject, result)
 	if !Equal(expected, result) {
@@ -118,7 +118,7 @@ func Test_SkipTake_LargeSkip(t *testing.T) {
 }
 
 func Test_SkipTake_LargeTake(t *testing.T) {
-	list := FromRaw([]uint64{0x10, 0xffffffff, 0, 1})
+	list := FromRaw(0x10, 0xffffffff, 0, 1)
 
 	if list.Len() != 0x100000000 {
 		t.Error("Bad big skip")

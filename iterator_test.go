@@ -51,7 +51,7 @@ func Test_SkipTake_Seek(t *testing.T) {
 }
 
 func Test_SkipTake_IterNextSkipTake(t *testing.T) {
-	list := FromRaw([]uint64{1, 10, 2, 20, 3, 30, 4, 40})
+	list := FromRaw(1, 10, 2, 20, 3, 30, 4, 40)
 	iter := list.Iterate()
 
 	skip, take := iter.NextSkipTake()
@@ -76,7 +76,7 @@ func Test_SkipTake_IterNextSkipTake(t *testing.T) {
 }
 
 func Test_SkipTake_IterNextSkipTakeSeek(t *testing.T) {
-	list := FromRaw([]uint64{1, 10, 2, 20, 3, 30, 4, 40})
+	list := FromRaw(1, 10, 2, 20, 3, 30, 4, 40)
 	iter := list.Iterate()
 
 	t.Logf("%v", list)

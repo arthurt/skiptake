@@ -78,7 +78,7 @@ func Equal(a, b List) bool {
 
 // FromRaw creates a skip-take list from a slice of []uint64 values
 // representing a sequence of alternating skip and take values.
-func FromRaw(v []uint64) List {
+func FromRaw(v ...uint64) List {
 	l := List{}
 	e := l.Encode()
 	for i := 0; i < len(v); i++ {
