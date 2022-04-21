@@ -7,21 +7,20 @@ import (
 	"math"
 )
 
-// Implement container/heap.Interface for a set of Iterators.
+// firstHeap implements the container/heap.Interface for a set of Iterators.
+//
+// We choose to implement Less only on the interval first value, so it is as
+// fast as possible.
 type firstHeap []Iterator
 
 func (m firstHeap) Len() int      { return len(m) }
 func (m firstHeap) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
-
 func (m firstHeap) Less(i, j int) bool {
-	fi, li := m[i].Interval()
-	fj, lj := m[j].Interval()
-	if fi == fj {
-		// Sort by soonest ending, sorting EOS as after.
-		// If m[i] is not EOS and (m[j] is EOS or ends after m[i])
-		return li >= fi && (li < lj || lj < fj)
+	a, b := m[i].n, m[j].n
+	if a == b {
+		return m[i].take < m[j].take
 	}
-	return fi < fj
+	return a < b
 }
 
 func (m *firstHeap) Push(x interface{}) {
@@ -41,53 +40,52 @@ func (m *firstHeap) Pop() interface{} {
 func Union(lists ...List) List {
 	b := Build(&List{})
 	iter := make(firstHeap, len(lists))
-	for i := range lists {
-		iter[i] = lists[i].Iterate()
+	if len(lists) > 0 {
+		for i := range lists {
+			iter[i] = lists[i].Iterate()
+			// Prime
+			iter[i].NextSkipTake()
+		}
+		union(&b, iter)
 	}
-	union(&b, iter)
 	return b.Finish()
 }
 
 func union(result *Builder, iter firstHeap) {
-
 	var n uint64 // Current candidate intersection interval first value
 	var r uint64 // Current candidate intersection interval last value
 	var l uint64 // Proceededing non-intersection interval first value
 
 	heap.Init(&iter)
-	for len(iter) > 0 {
-		// Get the earliest interval start
+	// Starting is a special case because of zero skips.
+	n, r = iter[0].Interval()
+	if n > r { // EOS
+		return
+	}
+	iter[0].NextInterval()
+	heap.Fix(&iter, 0)
+	result.Skip(n)
+	result.Take(r - n)
+
+	for {
 		first, last := iter[0].Interval()
 		if first > last { // EOS
-			// The earliest iterator is at EOS, we are done.
 			return
+		}
+		if first > r {
+			// Next earliest interval starts after our current candiate.
+			// Have a discontinuity.
+			l = r + 1
+			n, r = first, last
+			result.Skip(n - l)
+			result.Take(r - n)
+		} else if last > r {
+			// Extend the candidate interval.
+			result.Take(last - r)
+			r = last
 		}
 		iter[0].NextInterval()
 		heap.Fix(&iter, 0)
-		n, r = first, last
-		result.Skip(n - l)
-
-		// Keep searching and extending the output interval
-		for {
-			first, last = iter[0].Interval()
-			if first > last { // EOS
-				heap.Pop(&iter)
-				break
-			}
-			if first > r {
-				// Next earliest is outside of interval.
-				// Have a discontinuity.
-				break
-			}
-			iter[0].NextInterval()
-			heap.Fix(&iter, 0)
-			if last > r {
-				// Extend the output interval
-				r = last
-			}
-		}
-		result.Take(r - n)
-		l = r + 1
 	}
 }
 
