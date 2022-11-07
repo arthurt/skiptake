@@ -166,7 +166,7 @@ func complement(result *Builder, set Iterator, max uint64) {
 	for {
 		skip, take := set.NextSkipTake()
 		if skip > 0 {
-			if n+skip >= max {
+			if max-n <= skip {
 				// End boundary case. Next source skip starts outside our max
 				// boundary. Add a take for the rest of the output range and be
 				// done.
@@ -188,7 +188,7 @@ func complement(result *Builder, set Iterator, max uint64) {
 			// Input source is done.
 			break
 		}
-		if n+take >= max {
+		if max-n <= take {
 			// End boundary case. Next source take finished outside our max
 			// boundary.
 			n += take
