@@ -42,10 +42,10 @@ func TestSetOperationsUnion(t *testing.T) {
 
 	t.Run("Common", func(t *testing.T) {
 		testUnion(t,
-			[]uint64{10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 31, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44},
-			Create(10, 11, 12, 13, 14),
-			Create(15, 16, 17, 18, 19),
-			Create(31, 33, 34, 36, 37, 39),
+			[]uint64{0, 1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 31, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44},
+			Create(0, 10, 11, 12, 13, 14),
+			Create(0, 15, 16, 17, 18, 19),
+			Create(0, 1, 31, 33, 34, 36, 37, 39),
 			Create(35, 36, 37, 38, 39, 40, 41, 42, 43, 44),
 		)
 	})
@@ -73,6 +73,20 @@ func TestSetOperationsUnion(t *testing.T) {
 			[]uint64{10, 30, 0xfffffffffffffffe, 0xffffffffffffffff},
 			Create(10),
 			Create(30, 0xfffffffffffffffe),
+			Create(0xfffffffffffffffe, 0xffffffffffffffff),
+			Create(0xffffffffffffffff),
+		)
+	})
+
+	t.Run("MaxRangeSingle", func(t *testing.T) {
+		testUnion(t,
+			[]uint64{0xffffffffffffffff},
+			Create(),
+			Create(0xffffffffffffffff),
+			Create(),
+			Create(),
+			Create(),
+			Create(0xffffffffffffffff),
 			Create(0xffffffffffffffff),
 		)
 	})
@@ -154,6 +168,36 @@ func testComplement(t *testing.T, subject, expected List, max uint64) {
 		t.Errorf("Complement is not idempotent: %v != %v", reverse, subject)
 		return
 	}
+}
+
+func TestSetOperationComplement(t *testing.T) {
+
+	t.Run("Idempotency", func(*testing.T) {
+		subject := makeRange(intrv{3, 11}, intrv{55, 10000})
+
+		complement := Complement(subject)
+		t.Logf("A: %v", subject)
+		t.Logf("A': %v", complement)
+
+		doubleComplement := Complement(complement)
+		t.Logf("A'': %v", doubleComplement)
+
+		if !Equal(subject, doubleComplement) {
+			t.Errorf("%v != %v", subject, doubleComplement)
+		}
+	})
+
+	t.Run("ZeroMax", func(*testing.T) {
+		subject := makeRange(intrv{0, 4})
+		complement := ComplementMax(subject, 0)
+		expected := makeRange()
+
+		t.Logf("Subject: '%v'", subject)
+		t.Logf("Complement, max 0: '%v'", complement)
+		if !Equal(complement, expected) {
+			t.Errorf("'%v' != '%v'", complement, expected)
+		}
+	})
 }
 
 func TestSetOperationsComplementMax(t *testing.T) {
